@@ -145,10 +145,14 @@ int main(int argc, const char** argv) {
     } else {
 	m = mj_loadXML(n.model_file.c_str(), 0, error, 1000);
     }
+    
     if (!m) {
-	mju_error("Load model error: %s", error);
-	return -1;
-    }
+    std::cerr << "ERROR COMPLETO DE MUJOCO: " << error << std::endl;
+    RCLCPP_ERROR_STREAM(n.get_logger(), "Load model error: " << error);
+    mju_error("Load model error: %s", error);
+    return -1;
+	}    
+
     print_joint_list(m);
     
     // make data
