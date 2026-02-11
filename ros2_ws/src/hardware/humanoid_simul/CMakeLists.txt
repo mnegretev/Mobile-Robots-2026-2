@@ -1,4 +1,14 @@
 cmake_minimum_required(VERSION 3.8)
+
+# MuJoCo
+set(MUJOCO_DIR $ENV{MUJOCO_DIR})
+if(NOT MUJOCO_DIR)
+  set(MUJOCO_DIR $ENV{HOME}/mujoco)
+endif()
+
+include_directories(${MUJOCO_DIR}/include)
+link_directories(${MUJOCO_DIR}/build/lib)
+
 project(humanoid_simul)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -13,6 +23,11 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
 add_executable(humanoid_simul src/humanoid_simul.cpp)
+
+target_link_libraries(humanoid_simul
+  mujoco
+)
+
 target_include_directories(humanoid_simul PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
