@@ -38,7 +38,7 @@ class RosBasicsNode(Node):
 	msg_twist.linear.x  = 0.0 if self.obstacle_detected else 0.3
 	self.pub_cmd_vel.publish(msg_twist)
 	msg_point = PointStamped()
-	msg_point.header.frame_id="map"
+	msg_point.header.frame_id="base_link"
 	msg_point.point.x = 1.0
 	self.pub_point.publish(msg_point)        
         return
