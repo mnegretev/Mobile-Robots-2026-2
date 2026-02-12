@@ -12,6 +12,7 @@ find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
+set(MUJOCO_DIR "$ENV{HOME}/mujoco_install")
 add_executable(humanoid_simul src/humanoid_simul.cpp)
 target_include_directories(humanoid_simul PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -26,12 +27,49 @@ ament_target_dependencies(
   "sensor_msgs"
 )
 
+target_include_directories(humanoid_simul PRIVATE
+  ${MUJOCO_DIR}/include
+)
+
+target_link_directories(humanoid_simul PRIVATE
+  ${MUJOCO_DIR}/lib
+)
+
+target_link_libraries(humanoid_simul
+  mujoco
+)
+
 add_executable(basic_mujoco src/basic_mujoco.cpp)
 target_include_directories(basic_mujoco PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include/${PROJECT_NAME}>)
 target_compile_features(basic_mujoco PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_link_libraries(basic_mujoco mujoco glfw)  
+set(MUJOCO_DIR "$ENV{HOME}/mujoco_install")
+
+target_include_directories(basic_mujoco PRIVATE
+  ${MUJOCO_DIR}/include
+)
+
+target_link_directories(basic_mujoco PRIVATE
+  ${MUJOCO_DIR}/lib
+)
+
+target_link_libraries(basic_mujoco
+  mujoco
+)
+
+target_include_directories(basic_mujoco PRIVATE
+  ${MUJOCO_DIR}/include
+)
+
+target_link_directories(basic_mujoco PRIVATE
+  ${MUJOCO_DIR}/lib
+)
+
+target_link_libraries(basic_mujoco
+  mujoco
+)
 # ament_target_dependencies(
 #   humanoid_simul
 #   "rclcpp"
