@@ -50,3 +50,10 @@ install(TARGETS basic_mujoco
 
 
 ament_package()
+include_directories(
+  /usr/local/mujoco/mujoco-3.1.1/include
+)
+
+link_directories(
+  /usr/local/mujoco/mujoco-3.1.1/lib
+)

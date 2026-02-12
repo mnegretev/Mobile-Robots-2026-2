@@ -43,7 +43,7 @@
       <geom material="medium_gray"/>
       <site rgba="1 0 0 1" size="0.01" group="5"/>
       <joint frictionloss="0.1" armature="0.005"/>
-      <position inheritrange="1" kp="75" kv="5"/>
+      <position kp="75" kv="5"/>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" group="2"/>
       </default>
