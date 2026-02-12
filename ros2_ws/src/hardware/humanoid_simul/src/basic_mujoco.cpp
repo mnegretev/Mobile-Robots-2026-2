@@ -18,7 +18,7 @@
 
 #include <GLFW/glfw3.h>
 #include <mujoco/mujoco.h>
-
+#include <string>
 // MuJoCo data structures
 mjModel* m = NULL;                  // MuJoCo model
 mjData* d = NULL;                   // MuJoCo data
@@ -116,7 +116,8 @@ int main(int argc, const char** argv) {
     m = mj_loadXML(argv[1], 0, error, 1000);
   }
   if (!m) {
-    mju_error("Load model error: %s", error);
+    std::string err = std::string("Load model error: ") + error;
+    mju_error(err.c_str());
   }
 
   // make data

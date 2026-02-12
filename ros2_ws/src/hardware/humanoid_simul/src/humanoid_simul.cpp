@@ -3,6 +3,7 @@
 #include <iostream>
 #include <GLFW/glfw3.h>
 #include <mujoco/mujoco.h>
+#include <string>
 #include "rclcpp/rclcpp.hpp"
 
 class HumanoidSimulNode : public rclcpp::Node
@@ -146,7 +147,8 @@ int main(int argc, const char** argv) {
 	m = mj_loadXML(n.model_file.c_str(), 0, error, 1000);
     }
     if (!m) {
-	mju_error("Load model error: %s", error);
+	std::string err = std::string("Load model error: ") + error;
+        mju_error(err.c_str());
 	return -1;
     }
     print_joint_list(m);
