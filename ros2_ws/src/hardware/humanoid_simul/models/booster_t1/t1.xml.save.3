@@ -1,7 +1,7 @@
 <mujoco model="T1">
   <compiler angle="radian" meshdir="assets" autolimits="true"/>
 
-  <option />
+  <option integrator="implicitfast"/>
   <option timestep="0.001"/>
 
   <asset>
@@ -33,7 +33,7 @@
     <mesh file="Hip_Pitch_Right.stl"/>
     <mesh file="Hip_Roll_Right.stl"/>
     <mesh file="Hip_Yaw_Right.stl"/>
-    <mesh file="Shank_Right.stl"/>
+nano ~/Mobile-Robots-2026-2/ros2_ws/src/hardware/humanoid_simul/models/booster_t1/t1.xml    <mesh file="Shank_Right.stl"/>
     <mesh file="Ankle_Cross_Right.stl"/>
     <mesh file="right_foot_link.stl"/>
   </asset>
@@ -43,7 +43,7 @@
       <geom material="medium_gray"/>
       <site rgba="1 0 0 1" size="0.01" group="5"/>
       <joint frictionloss="0.1" armature="0.005"/>
-      <position   />
+      <position  kp="75" kv="5"/>
       <default class="visual">
         <geom type="mesh" contype="0" conaffinity="0" group="2"/>
       </default>
@@ -250,6 +250,7 @@
   </actuator>
 
   <keyframe>
+    <key name="home"
       qpos="
     0 0 0.665
     1 0 0 0
