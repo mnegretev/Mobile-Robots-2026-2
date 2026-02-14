@@ -1,0 +1,23 @@
+{
+    "ROS2.distro": "jazzy",
+    "python.autoComplete.extraPaths": [
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/xarm_msgs/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/uf_ros_lib/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/path_planner/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/path_follower/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/navig_msgs/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/motion_planning/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/car_simul/lib/python3.12/site-packages",
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/xarm_msgs/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/uf_ros_lib/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/path_planner/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/path_follower/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/navig_msgs/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/motion_planning/lib/python3.12/site-packages",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/car_simul/lib/python3.12/site-packages",
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ]
+}

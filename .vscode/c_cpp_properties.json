@@ -1,0 +1,27 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${workspaceFolder}/.vscode/browse.vc.db",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/xarm_controller/include/**",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/xarm_api/include/**",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/xarm_msgs/include/**",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/install/navig_msgs/include/**",
+        "/opt/ros/jazzy/include/**",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/src/hardware/xarm/xarm_api/include/**",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/src/hardware/xarm/xarm_controller/include/**",
+        "/home/krmn/Mobile-Robots-2026-2/ros2_ws/src/hri/lira_gui/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ros2",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++17"
+    }
+  ],
+  "version": 4
+}
