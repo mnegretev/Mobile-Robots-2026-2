@@ -13,7 +13,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist, PointStamped
 from sensor_msgs.msg import LaserScan
 
-FULL_NAME = "FULL NAME"
+FULL_NAME = "Claudia Eunice Vazquez Rios"
 
 class RosBasicsNode(Node):
     def __init__(self):
@@ -26,25 +26,32 @@ class RosBasicsNode(Node):
         self.obstacle_detected = False
 
     def callback_timer(self):
-        #
-        # TODO:
-        # Declare a Twist message and assign the appropiate speeds:
-        # Move forward if there is no obstacle in front of the robot, and stop otherwise.
-        # Use the 'obstacle_detected' variable to check if there is an obstacle. 
-        # Publish the Twist message using the already declared publisher 'pub_cmd_vel'.
-        # Publish a point stamped with fixed coordinates (1,0)
-        #
-        
-        return
+                # Create Twist message
+        msg_twist = Twist()
+
+        # Move forward if no obstacle
+        if self.obstacle_detected:
+            msg_twist.linear.x = 0.0
+        else:
+            msg_twist.linear.x = 0.3
+
+        # Publish velocity
+        self.pub_cmd_vel.publish(msg_twist)
+
+        # Create PointStamped message
+        msg_point = PointStamped()
+        msg_point.header.frame_id = "base_link"
+        msg_point.point.x = 1.0
+        msg_point.point.y = 0.0
+        msg_point.point.z = 0.0
+
+        # Publish point
+        self.pub_point.publish(msg_point)
 
     def callback_scan(self, msg):
-        #
-        # TODO:
-        # Do something to detect if there is an obstacle in front of the robot.
-        # Set the 'obstacle_detected' variable with True or False, accordingly.
-        #
-        
-        return
+        # Detect obstacle in front (valor central del LIDAR)
+        self.obstacle_detected = msg.ranges[len(msg.ranges)//2] < 1.0
+
 
 
 def main(args=None):
