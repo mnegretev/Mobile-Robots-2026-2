@@ -22,39 +22,29 @@ class CostMapNode(Node):
         self.get_logger().debug("Inflating map by " + str(inflation_cells) + " cells")
         inflated = numpy.copy(static_map)
         [height, width] = static_map.shape
-        #
-        # TODO:
-        # Write the code necessary to inflate the obstacles in the map a radius
-        # given by 'inflation_cells' (expressed in number of cells)
-        # Map is given in 'static_map' as a bidimensional numpy array.
-        # Consider as occupied cells all cells with an occupation value greater than 50
-        #
-        
+        for i in range(len(static_map)):
+            for j in range(len(static_map[0])):
+                if(static_map[i, j] == 100):
+                    for k1 in range(-int(inflation_cells), int(inflation_cells)):
+                        for k2 in range(-int(inflation_cells), int(inflation_cells)):
+                            r = min(height - 1, max(0, i + k1))
+                            c = min(width - 1, max(0, j + k2))
+                            inflated[r, c] = 100
         return inflated
     
     def get_cost_map(self, static_map, cost_radius):
         self.get_logger().debug("Getting cost map with " + str(cost_radius) + " cells")
         cost_map = numpy.copy(static_map)
         [height, width] = static_map.shape
-        #
-        # TODO:
-        # Write the code necessary to calculate a cost map for the given map.
-        # To calculate cost, consider as example the following map:    
-        # [[ 0 0 0 0 0 0]
-        #  [ 0 X 0 0 0 0]
-        #  [ 0 X X 0 0 0]
-        #  [ 0 X X 0 0 0]
-        #  [ 0 X 0 0 0 0]
-        #  [ 0 0 0 X 0 0]]
-        # Where occupied cells 'X' have a value of 100 and free cells have a value of 0.
-        # Cost is an integer indicating how near cells and obstacles are:
-        # [[ 3 3 3 2 2 1]
-        #  [ 3 X 3 3 2 1]
-        #  [ 3 X X 3 2 1]
-        #  [ 3 X X 3 2 2]
-        #  [ 3 X 3 3 3 2]
-        #  [ 3 3 3 X 3 2]]
-        # Cost_radius indicate the number of cells around obstacles with costs greater than zero.
+        for i in range(height):
+                    for j in range(width):
+                        if static_map[i, j] > 50:
+                            for k1 in range(-int(cost_radius), int(cost_radius) + 1):
+                                for k2 in range(-int(cost_radius), int(cost_radius) + 1):
+                                    if (i + k1) < 0 or (i + k1) >= height or (j + k2) < 0 or (j + k2) >= width:
+                                        continue
+                                    cost = cost_radius - max(abs(k1), abs(k2)) + 1
+                                    cost_map[i + k1, j + k2] = max(cost, cost_map[i + k1, j + k2])
         
         return cost_map
 
@@ -110,6 +100,8 @@ class CostMapNode(Node):
         self.srv_cost_map  = self.create_service(GetMap, '/get_cost_map', self.callback_cost_map)
         self.pub_inflated_map = self.create_publisher(OccupancyGrid, '/inflated_map', 10)
         self.pub_cost_map = self.create_publisher(OccupancyGrid, '/cost_map', 10)
+        
+        
 
 
 def main(args=None):

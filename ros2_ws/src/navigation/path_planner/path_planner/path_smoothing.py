@@ -2,10 +2,7 @@
 # MOBILE ROBOTS - FI-UNAM, 2026-2
 # PATH SMOOTHING BY GRADIENT DESCEND
 #
-# Instructions:
-# Write the code necessary to smooth a path using the gradient descend algorithm.
-# MODIFY ONLY THE SECTIONS MARKED WITH THE 'TODO' COMMENT
-#
+
 import rclpy
 from rclpy.node import Node
 from nav_msgs.msg import Path
@@ -13,45 +10,43 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 import numpy
 
-NAME = "FULL NAME"
+NAME = "GUSTAVO VAZQUEZ MARTINEZ"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
-        #
-        # TODO:
-        # Write the code to smooth the path Q, using the gradient descend algorithm,
-        # and return a new smoothed path P.
-        # Path is composed of a set of points [x,y] as follows:
-        # [[x0,y0], [x1,y1], ..., [xn,ym]].
-        # The smoothed path must have the same shape.
-        # Return the smoothed path.
-        #
         P = numpy.copy(Q)
         tol     = 0.00001                   
         nabla   = numpy.full(Q.shape, float("inf"))
-        epsilon = 0.1                       
-        
-        return P
+        epsilon = 0.1
+        # El algoritmo se implementará aquí más adelante
+        return P 
 
     def callback_smooth_path(self, request, response):
         w1  = self.get_parameter('w1').get_parameter_value().double_value
         w2  = self.get_parameter('w2').get_parameter_value().double_value
         steps  = self.get_parameter('steps').get_parameter_value().integer_value
         self.get_logger().info("Smoothing path with params: " + str([w1, w2, steps]))
+        
         start_time = self.get_clock().now()
         Q = numpy.asarray([[p.pose.position.x, p.pose.position.y] for p in request.path.poses])
+        
         P = self.smooth_path(Q, w1, w2, steps)
+        
+        # --- ESTA ES LA ZONA DE LA LÍNEA 45-56 ---
         end_time = self.get_clock().now()
         delta_ms = (end_time.nanoseconds - start_time.nanoseconds)/1e6
+        
         self.get_logger().info("Path smoothed after " + str(delta_ms) + " ms")
         self.msg_smooth_path.header.frame_id = request.path.header.frame_id
         self.msg_smooth_path.header.stamp = self.get_clock().now().to_msg()
         self.msg_smooth_path.poses = []
+        
         for i in range(len(request.path.poses)):
             p = PoseStamped()
             p.pose.position.x = P[i,0]
             p.pose.position.y = P[i,1]
             self.msg_smooth_path.poses.append(p)
+            
         self.pub_smooth_path.publish(self.msg_smooth_path)
         response.processed_path = self.msg_smooth_path
         return response
@@ -73,6 +68,5 @@ def main(args=None):
     path_smoothing_node.destroy_node()
     rclpy.shutdown()
 
-    
 if __name__ == '__main__':
     main()
