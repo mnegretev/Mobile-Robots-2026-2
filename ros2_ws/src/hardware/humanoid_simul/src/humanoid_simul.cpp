@@ -146,7 +146,8 @@ int main(int argc, const char** argv) {
 	m = mj_loadXML(n.model_file.c_str(), 0, error, 1000);
     }
     if (!m) {
-	mju_error("Load model error: %s", error);
+	printf("Load model error: %s\n", error);\
+    mju_error("Load model error");
 	return -1;
     }
     print_joint_list(m);
