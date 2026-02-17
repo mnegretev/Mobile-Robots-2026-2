@@ -30,8 +30,8 @@ class CostMapNode(Node):
         # Consider as occupied cells all cells with an occupation value greater than 50
         # 
         for i in range(len(static_map)):
-            for j in range(len(statix_map[0])):
-                if(static_map[i,j] = 100):
+            for j in range(len(static_map[0])):
+                if(static_map[i,j] == 100):
                    for k1 in range(-inflation_cells, inflation_cells):
                        for k2 in range(-inflation_cells, inflation_cells):
                            r = min(height-1, max(0, i + k1))
@@ -65,12 +65,12 @@ class CostMapNode(Node):
         for i in range(height):
             for j in range(width):
                 if static_map[i, j] > 50:
-                    for k1 in range(-cost.radius, cost_radius+1):
-                        for k2 in range(-cost_radius, cost_radius+1:
-                            if (i + k1 < 0 or (i + k1) >= height or (j + k2) < 0 or (j + k2 >= width:
+                    for k1 in range(-cost_radius, cost_radius+1):
+                        for k2 in range(-cost_radius, cost_radius+1):
+                            if (i + k1 < 0) or (i + k1) >= height or (j + k2) < 0 or (j + k2) >= width:
                                 continue
                             cost = cost_radius - max(abs(k1), abs(k2)) + 1
-                            cost_map[i + k1, j + k2 = max(cost, cost_map[i + k1, j + k2])
+                            cost_map[i + k1, j + k2] = max(cost, cost_map[i + k1, j + k2])
 
         return cost_map
 	
