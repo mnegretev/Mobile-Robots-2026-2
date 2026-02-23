@@ -7,6 +7,7 @@
 # occupancy grid and the RRT algorithm
 # MODIFY ONLY THE SECTIONS MARKED WITH THE 'TODO' COMMENT
 #
+
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time, Duration
@@ -20,7 +21,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Rodriguez Torres Angel Adrian"
 
 class TreeNode:
     def __init__(self, x, y, parent=None):
@@ -91,7 +92,16 @@ class RRTNode(Node):
         # Goal node is also already created.
         # Return both, the tree and the path. You can follow these steps:
         #
-        
+        while goal_node.parent is None and max_attempts > 0:
+            [x,y] = self.get_random_q(grid_map)
+            nearest_node = self.get_nearest_node(tree, x, y )
+            new_node = self.get_new_node(nearest_node, x, y, epsilon)
+            if not self.check_collision(nearest_node, new_node, grid_map, epsilon):
+                nearest_node.children.append(new_node)
+                if not self.check_collision(new_node, goal_node, grid_map, epsilon):
+                    new_node.children.append(goal_node)
+                    goal_node.parent = new_node
+            max_attempts -= 1  
         path = []
         while goal_node is not None:
             path.insert(0, [goal_node.x, goal_node.y])
