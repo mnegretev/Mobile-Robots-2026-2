@@ -20,7 +20,11 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+# Para la creación de excely tiempo
+import time
+from openpyxl import Workbook
+
+NAME = "DOMINGUEZ PALACIOS JESUS ALEJANDRO"
 
 class TreeNode:
     def __init__(self, x, y, parent=None):
@@ -81,21 +85,98 @@ class RRTNode(Node):
         return False
 
     def rrt(self, start_x, start_y, goal_x, goal_y, grid_map, epsilon, max_attempts):
+
+        start_time = time.time()
         tree = TreeNode(start_x, start_y, None)
         goal_node = TreeNode(goal_x, goal_y, None)
-    
-        #
-        # TODO
-        # Implement the RRT algorithm for path planning
-        # The tree is already created with the corresponding starting node.
-        # Goal node is also already created.
-        # Return both, the tree and the path. You can follow these steps:
-        #
-        
+
+        attempts = max_attempts
+
+        start_time = time.time()
+
+        while goal_node.parent is None and attempts > 0:
+
+            x, y = self.get_random_q(grid_map)
+            nearest_node = self.get_nearest_node(tree, x, y)
+            new_node = self.get_new_node(nearest_node, x, y, epsilon)
+
+            if not self.check_collision(nearest_node, new_node, grid_map, epsilon):
+
+                nearest_node.children.append(new_node)
+                new_node.parent = nearest_node 
+
+                if not self.check_collision(new_node, goal_node, grid_map, epsilon):
+                    new_node.children.append(goal_node)
+                    goal_node.parent = new_node
+
+            attempts -= 1
+
+        execution_time = time.time() - start_time
+
+        success = 1 if goal_node.parent is not None else 0
+
+        print("====================================")
+        print(f"Goal: ({goal_x}, {goal_y})")
+        print(f"Epsilon: {epsilon}")
+        print(f"Max Attempts: {max_attempts}")
+        print(f"Success: {success}")
+        print(f"Execution Time: {execution_time:.4f} s")
+        print("====================================")
+
+        # Construcción del path
         path = []
-        while goal_node is not None:
-            path.insert(0, [goal_node.x, goal_node.y])
-            goal_node = goal_node.parent
+        current = goal_node
+
+        while current is not None:
+            path.insert(0, [current.x, current.y])
+            current = current.parent
+
+        end_time = time.time()
+        execution_time = end_time - start_time
+
+        import os
+        from openpyxl import Workbook, load_workbook
+
+        filename = os.path.join(os.getcwd(), "rrt_results.xlsx")
+
+        # Si ya existe el archivo solo lo abre y se sobre escribe abrirlo
+        if os.path.exists(filename):
+            wb = load_workbook(filename)
+            ws = wb.active
+        else:
+            # Si no existe crear el archivo y agregar encabezados
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "RRT Results"
+            ws.append([
+                "Inicio (X,Y)",
+                "Meta (X,Y)",
+                "Epsilon",
+                "Max intentos",
+                "Tiempo de ejecución (s)",
+                "Exitos",
+                "Path Length"
+            ])
+
+        # Si encuentra la ruta es 1 si no 0
+        success = 1 if goal_node.parent is not None else 0
+
+        # Agregar nueva fila
+        ws.append([
+            f"({start_x}, {start_y})",
+            f"({goal_x}, {goal_y})",
+            epsilon,
+            max_attempts,
+            execution_time,
+            success,
+            len(path)
+            ])
+
+        wb.save(filename)
+        wb.close()
+
+        print(f"Datos agregados en: {filename}")
+
         return tree, path
 
     def get_tree_marker(self,tree):
