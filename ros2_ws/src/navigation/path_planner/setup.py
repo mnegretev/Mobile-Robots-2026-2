@@ -30,7 +30,7 @@ setup(
             'path_smoothing_solved = path_planner.path_smoothing_solved:main',
             'pot_fields = path_planner.pot_fields:main',
             'pot_fields_solved = path_planner.pot_fields_solved:main',
-            
+            'test_experiments = path_planner.test_rrt_experiments:main',
         ],
     },
 )
