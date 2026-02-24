@@ -16,11 +16,14 @@ from nav_msgs.msg import Path
 from nav_msgs.srv import *
 from builtin_interfaces.msg import Duration
 from collections import deque
+import csv
+import time
+from datetime import datetime
 import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Emmanuel Domínguez Osio"
 
 class TreeNode:
     def __init__(self, x, y, parent=None):
@@ -34,6 +37,75 @@ class RRTNode(Node):
         c = int((x - grid_map.info.origin.position.x)/grid_map.info.resolution)
         r = int((y - grid_map.info.origin.position.y)/grid_map.info.resolution)
         return grid_map.data[r*grid_map.info.width + c] < 40 and grid_map.data[r*grid_map.info.width + c] >= 0
+
+    def benchmark_rrt(self, start_points, goal_points, epsilons, max_attempts_list, num_trials):
+        """
+        Run RRT benchmarks with multiple parameter combinations and export to CSV
+
+        Args:
+            start_points: List of (x, y) start positions
+            goal_points: List of (x, y) goal positions
+            epsilons: List of epsilon values to test
+            max_attempts_list: List of max_attempts values to test
+            num_trials: Number of trials per configuration
+        """
+        results = []
+
+        # Nested loops for all parameter combinations
+        for start in start_points:
+            for goal in goal_points:
+                for epsilon in epsilons:
+                    for max_att in max_attempts_list:
+                        successes = 0
+                        times = []
+
+                        # Run multiple trials for this configuration
+                        for trial in range(num_trials):
+                            start_time = time.time()
+                            tree, path = self.rrt(start[0], start[1], goal[0], goal[1],
+                                                self.grid_map, epsilon, max_att)
+                            end_time = time.time()
+
+                            exec_time = (end_time - start_time) * 1000  # Convert to ms
+                            success = 1 if len(path) > 1 else 0
+
+                            successes += success
+                            times.append(exec_time)
+
+                            # Store result
+                            results.append({
+                                'start_x': start[0],
+                                'start_y': start[1],
+                                'goal_x': goal[0],
+                                'goal_y': goal[1],
+                                'epsilon': epsilon,
+                                'max_attempts': max_att,
+                                'trial': trial + 1,
+                                'success': success,
+                                'execution_time_ms': exec_time,
+                                'path_length': len(path)
+                            })
+
+                        # Print summary for this configuration
+                        success_rate = (successes / num_trials) * 100
+                        avg_time = numpy.mean(times)
+                        print(f"Start {start} -> Goal {goal}, epsilon={epsilon}, "
+                            f"max_attempts={max_att}: Success={success_rate:.1f}%, "
+                            f"AvgTime={avg_time:.2f}ms")
+
+        # Export to CSV
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        csv_filename = f"rrt_benchmark_{timestamp}.csv"
+
+        with open(csv_filename, 'w', newline='') as csvfile:
+            fieldnames = ['start_x', 'start_y', 'goal_x', 'goal_y', 'epsilon',
+                        'max_attempts', 'trial', 'success', 'execution_time_ms', 'path_length']
+            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(results)
+
+        print(f"\nResults exported to: {csv_filename}")
+        return results
     
     def get_random_q(self, grid_map):
         min_x = grid_map.info.origin.position.x
@@ -91,7 +163,16 @@ class RRTNode(Node):
         # Goal node is also already created.
         # Return both, the tree and the path. You can follow these steps:
         #
-        
+        while goal_node.parent is None and max_attempts > 0:
+            [x,y] = self.get_random_q(grid_map)
+            nearest_node = self.get_nearest_node(tree, x, y)
+            new_node = self.get_new_node(nearest_node, x, y, epsilon)
+            if not self.check_collision(nearest_node, new_node, grid_map, epsilon):
+                nearest_node.children.append(new_node)
+                if not self.check_collision(new_node, goal_node, grid_map, epsilon):
+                    new_node.children.append(goal_node)
+                    goal_node.parent = new_node
+            max_attempts -= 1
         path = []
         while goal_node is not None:
             path.insert(0, [goal_node.x, goal_node.y])
@@ -129,7 +210,7 @@ class RRTNode(Node):
         response = future.result()
         self.get_logger().info("Got inflated map.")
         return response.map
-   
+    
     def callback_rrt(self, req, resp):
         [sx, sy] = [req.start.pose.position.x, req.start.pose.position.y]
         [gx, gy] = [req.goal .pose.position.x, req.goal .pose.position.y]
