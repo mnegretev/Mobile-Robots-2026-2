@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Emmanuel Domínguez Osio"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -28,7 +28,7 @@ class AStarNode(Node):
         in_closed_list = numpy.full(grid_map.shape, False)
         g_values       = numpy.full(grid_map.shape, float("inf"))
         f_values       = numpy.full(grid_map.shape, float("inf"))
-        parent_nodes   = numpy.full((grid_map.shape[0],grid_map.shape[1],2),-1)
+        parent_nodes   = numpy.full((height, width, 2), -1)
         open_list = []
         if use_diagonals: #Every adjacent node has: [row_offset, col_offset, cost]
             adjacents = [[1,0,1],[0,1,1],[-1,0,1],[0,-1,1], [1,1,1.414], [-1,1,1.414], [-1,-1,1.414],[1,-1,1.414]]
@@ -66,6 +66,26 @@ class AStarNode(Node):
         #
         # END OF WHILE
         #
+        while len(open_list) > 0 and (row != goal_r or col != goal_c):
+            [_, [row, col]] = heapq.heappop(open_list)
+            in_closed_list[row, col] = True
+            for [row_offset, col_offset, dist] in adjacents:
+                r = row + row_offset
+                c = col + col_offset
+                if r < 0 or r >= height or c < 0 or c >= width:
+                    continue
+                if grid_map[r, c] != 0 or in_closed_list[r, c]:
+                    continue
+                g = g_values[row, col] + dist + cost_map[r, c]
+                heuristic = math.sqrt((r - goal_r)**2 + (c - goal_c)**2)
+                f = g + heuristic
+                if g < g_values[r, c]:
+                    g_values[r, c] = g
+                    f_values[r, c] = f
+                    parent_nodes[r, c] = [row, col]
+                if not in_open_list[r, c]:
+                    in_open_list[r, c] = True
+                    heapq.heappush(open_list, (f_values[r, c], [r, c]))
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
@@ -116,7 +136,7 @@ class AStarNode(Node):
         self.get_logger().info("Planning path by A* from " + str([sx, sy])+" to "+str([gx, gy]))
         start_time = self.get_clock().now()
         path = self.a_star(int((sy-zy)/res), int((sx-zx)/res), int((gy-zy)/res), int((gx-zx)/res),
-                           inflated_grid, cost_grid, use_diagonals)
+                        inflated_grid, cost_grid, use_diagonals)
         end_time = self.get_clock().now()
         delta_ms = (end_time.nanoseconds - start_time.nanoseconds)/1e6
         if len(path) > 0:
