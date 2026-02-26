@@ -4,25 +4,18 @@
 
 RclComm::RclComm(): Node("justina_gui_node")
 {
-    std::cout << "Initializing RclComm node ..." << std::endl;
-    this->current_arm_joints.resize(6);
-    this->_pub_cmd_vel =  this->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
-    this->_pub_traj = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("/xarm6_traj_controller/joint_trajectory", 10);
+    this->_node = rclcpp::Node::make_shared("ros2_qt_demo");
+    RCLCPP_INFO(_node->get_logger(), "Initializing RclComm node ...");
+    this->_pub_cmd_vel =  this->_node->create_publisher<geometry_msgs::msg::Twist>("/cmd_vel", 10);
     // auto timer_callback =
     // 	[this]() -> void {
     // 	    std::cout << "Testing callback" << std::endl;
     // 	};
     //_timer = this->create_wall_timer(std::chrono::milliseconds(500), std::bind(&RclComm::timer_callback, this));
-    this->_sub_joint_states = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states",1,std::bind(&RclComm::callback_joint_states,this,std::placeholders::_1));
-    this->_clt_plan_path = this->create_client<nav_msgs::srv::GetPlan>("/path_planning/plan_path");
-    this->_clt_ik_pose2pose = this->create_client<manip_msgs::srv::InverseKinematicsPose2Pose>("/manipulation/ik_pose2pose");
-}
-
-void RclComm::spin_once()
-{
-  if(rclcpp::ok()) {
-        rclcpp::spin_some(this->get_node_base_interface());
-  }
+    //this->_subp = this->_node->create_subscription<std_msgs::msg::String>("chat_qt", 10, std::bind(&RclComm::recv_callback, this, std::placeholders::_1));
+    this->_sub_test = this->_node->create_subscription<std_msgs::msg::Float32>("test", 10, std::bind(&RclComm::callback_current_arm_pose, this, std::placeholders::_1));
+    this->_clt_plan_path = this->_node->create_client<nav_msgs::srv::GetPlan>("/path_planning/plan_path");
+    this->_clt_smooth_path = this->_node->create_client<navig_msgs::srv::ProcessPath>("/path_planning/smooth_path");
 }
 
 void RclComm::timer_callback()
@@ -30,11 +23,9 @@ void RclComm::timer_callback()
     std::cout << "Testing callback" << std::endl;
 }
 
-void RclComm::callback_joint_states(const sensor_msgs::msg::JointState &msg)
+void RclComm::callback_current_arm_pose(const std_msgs::msg::Float32 &msg)
 {
-  if(msg.name.size() == 7)
-    for(int i=0; i< 6; i++)
-      this->current_arm_joints[i] = msg.position[i+1];
+    std::cout << "Received float " << msg.data << std::endl;
 }
 
 void RclComm::publish_cmd_vel(double linear_x, double linear_y, double angular)
@@ -79,7 +70,7 @@ bool RclComm::call_plan_path(double start_x, double start_y, double goal_x, doub
     request->start.pose.position.y = start_y;
     request->goal.pose.position.x = goal_x;
     request->goal.pose.position.y = goal_y;
-    std::cout << "LiraGUI->Waiting for plan path service to be available..." << std::endl;
+    std::cout << "LiraGUI.->Waiting for plan path service to be available..." << std::endl;
     while(!this->_clt_plan_path->wait_for_service(std::chrono::milliseconds(500)))
     {
 	if (!rclcpp::ok()) {
@@ -88,10 +79,11 @@ bool RclComm::call_plan_path(double start_x, double start_y, double goal_x, doub
 	}
 	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service plan path not available, waiting again...");
     }
-    std::cout << "LiraGUI->Plan path service available. Trying to plan path..." << std::endl;
+    std::cout << "LiraGUI.->Plan path service available. Trying to plan path..." << std::endl;
     auto result = this->_clt_plan_path->async_send_request(request);
     // Wait for the result.
-    bool success = rclcpp::spin_until_future_complete(this->get_node_base_interface(), result) == rclcpp::FutureReturnCode::SUCCESS;
+    std::chrono::seconds timeout(5);
+    bool success = rclcpp::spin_until_future_complete(this->_node, result, timeout) == rclcpp::FutureReturnCode::SUCCESS;
     if (success)
     {
 	path = result.get()->plan;
@@ -104,60 +96,31 @@ bool RclComm::call_plan_path(double start_x, double start_y, double goal_x, doub
     return true;
 }
 
-void RclComm::publish_arm_joint_traj(std::vector<double> Q)
+bool RclComm::call_smooth_path(nav_msgs::msg::Path& path, nav_msgs::msg::Path& smooth_path)
 {
-  double max_delta = -1;
-  if(Q.size() != 6) return;
-  for(int i=0; i< 6; i++)
-    if(fabs(Q[i] - this->current_arm_joints[i]) > max_delta)
-      max_delta = fabs(Q[i] - this->current_arm_joints[i]);
-
-  double time = 0.5 + 1.0*max_delta;
-  trajectory_msgs::msg::JointTrajectory msg;
-  msg.header.stamp = this->get_clock()->now();
-  msg.joint_names = {"joint1", "joint2", "joint3", "joint4", "joint5", "joint6"};
-  trajectory_msgs::msg::JointTrajectoryPoint p;
-  p.positions = {Q[0], Q[1], Q[2], Q[3], Q[4], Q[5]};
-  p.time_from_start.sec = (int)time;
-  p.time_from_start.nanosec = (int)(time*1000000000);
-  msg.points.push_back(p);
-  this->_pub_traj->publish(msg);
-}
-
-bool RclComm::call_ik_pose2pose(double x, double y, double z, double roll, double pitch, double yaw, std::vector<double>& Q){
-    auto req = std::make_shared<manip_msgs::srv::InverseKinematicsPose2Pose::Request>();
-    req->x = x;
-    req->y = y;
-    req->z = z;
-    req->roll = roll;
-    req->pitch = pitch;
-    req->yaw = yaw;
-    req->initial_guess = {0,0,0,0,0,0};
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "LiraGUI->Waiting for IK service to be available...");
-    while(!this->_clt_ik_pose2pose->wait_for_service(std::chrono::milliseconds(500)))
+    auto request = std::make_shared<navig_msgs::srv::ProcessPath::Request>();
+    request->path = path;
+    if(!this->_clt_smooth_path->wait_for_service(std::chrono::milliseconds(500)))
     {
-	if (!rclcpp::ok()) {
-	    RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Interrupted while waiting for the IK service. Exiting.");
-	    return 0;
-	}
-	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service IK not available, waiting again...");
+	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service smooth path not available, waiting again...");
+	return false;
     }
-    RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "LiraGUI->IK service available. Trying to solve IK...");
-    auto response = this->_clt_ik_pose2pose->async_send_request(req);
+    std::cout << "LiraGUI.->Smooth path service available. Trying to plan path..." << std::endl;
+    auto result = this->_clt_smooth_path->async_send_request(request);
     // Wait for the result.
-    bool success = rclcpp::spin_until_future_complete(this->get_node_base_interface(), response) == rclcpp::FutureReturnCode::SUCCESS;
+    std::chrono::seconds timeout(5);
+    bool success = rclcpp::spin_until_future_complete(this->_node, result, timeout) == rclcpp::FutureReturnCode::SUCCESS;
     if (success)
     {
-	Q = response.get()->q;
-	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "LiraGUI.->IK solved successfully");
+	smooth_path = result.get()->processed_path;
+	std::cout << "LiraGUI.->Path smoothed successfully."<< std::endl;
 	return true;
     } else {
-	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "LiraGUI.->Cannot solve IK :'(");
+	std::cout << "LiraGUI.->Cannot smooth path :'(" << std::endl;
 	return false;
     }
     return true;
 }
-
 // void RclComm::recv_callback(const std_msgs::msg::String &msg)
 // {
 //     emit emitTopicData("pub send a msgs:" + QString::fromStdString(msg.data));

@@ -8,44 +8,37 @@
 #include "std_msgs/msg/float32.hpp"
 #include "nav_msgs/srv/get_plan.hpp"
 #include "nav_msgs/msg/path.hpp"
-#include "manip_msgs/srv/inverse_kinematics_pose2_pose.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "sensor_msgs/msg/joint_state.hpp"
-#include "trajectory_msgs/msg/joint_trajectory.hpp"
-#include "trajectory_msgs/msg/joint_trajectory_point.hpp"
+#include "navig_msgs/srv/process_path.hpp"
+
 
 class RclComm : public QThread, rclcpp::Node
 {
     Q_OBJECT
 public:
-    RclComm();
+    RclComm(); 
 
-    std::vector<double> current_arm_joints;
-
-    void spin_once();
     void publish_cmd_vel(double linear_x, double linear_y, double angular);
     void publish_cmd_vel(double linear_x, double angular);
     void start_publishing_cmd_vel(double linear_x, double linear_y, double angular);
     void start_publishing_cmd_vel(double linear_x, double angular);
     void stop_publishing_cmd_vel();
     bool call_plan_path(double start_x, double start_y, double goal_x, double goal_y, nav_msgs::msg::Path& path);
-    void publish_arm_joint_traj(std::vector<double> Q);
-    bool call_ik_pose2pose(double x, double y, double z, double roll, double pitch, double yaw, std::vector<double>& Q);
+    bool call_smooth_path(nav_msgs::msg::Path& path, nav_msgs::msg::Path& smooth_path);
 
 private:
     bool _publishing_cmd_vel;
     geometry_msgs::msg::Twist _cmd_vel;
+    std::shared_ptr<rclcpp::Node> _node;
     rclcpp::TimerBase::SharedPtr _timer;
-  
     rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr _pub_cmd_vel;
-    rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr _pub_traj;
-    rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr _sub_joint_states;
+    rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr _sub_test;
 
     rclcpp::Client<nav_msgs::srv::GetPlan>::SharedPtr _clt_plan_path;
-    rclcpp::Client<manip_msgs::srv::InverseKinematicsPose2Pose>::SharedPtr _clt_ik_pose2pose;
+    rclcpp::Client<navig_msgs::srv::ProcessPath>::SharedPtr _clt_smooth_path;
 
     void timer_callback();
-    void callback_joint_states(const sensor_msgs::msg::JointState &msg);
+    void callback_current_arm_pose(const std_msgs::msg::Float32 &msg);
     
 signals:
     //void emitTopicData(QString);

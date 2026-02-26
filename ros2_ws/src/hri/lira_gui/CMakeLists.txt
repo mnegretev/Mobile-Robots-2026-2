@@ -19,8 +19,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(navig_msgs REQUIRED)
-find_package(manip_msgs REQUIRED)
-find_package(trajectory_msgs REQUIRED)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 
 file(GLOB PRO_SOURCE_DIR RELATIVE ${CMAKE_SOURCE_DIR} FOLLOW_SYMLINKS src/*.cpp)
@@ -37,9 +35,7 @@ include_directories(
   ${geometry_msgs_INCLUDE_DIRS}
   ${sensor_msgs_INCLUDE_DIRS}
   ${nav_msgs_INCLUDE_DIRS}
-  ${navig_msgs_INCLUDE_DIRS}	
-  ${manip_msgs_INCLUDE_DIRS}
-  ${trajectory_msgs_INCLUDE_DIRS}
+  ${navig_msgs_INCLUDE_DIRS}
   ${CMAKE_CURRENT_BINARY_DIR}
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
@@ -66,9 +62,7 @@ target_link_libraries(lira_gui_node
   ${geometry_msgs_LIBRARIES}
   ${nav_msgs_LIBRARIES}
   ${navig_msgs_LIBRARIES}
-  ${manip_msgs_LIBRARIES}
-  ${trajectory_msgs_LIBRARIES}
-  ${sensor_msgs_LIBRARIES}
+  #${sensor_msgs_LIBRARIES}
 )
 
 # target_include_directories(lira_gui_node PUBLIC
