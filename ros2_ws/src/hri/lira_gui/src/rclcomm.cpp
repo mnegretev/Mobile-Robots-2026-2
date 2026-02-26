@@ -15,6 +15,7 @@ RclComm::RclComm(): Node("justina_gui_node")
     //this->_subp = this->_node->create_subscription<std_msgs::msg::String>("chat_qt", 10, std::bind(&RclComm::recv_callback, this, std::placeholders::_1));
     this->_sub_test = this->_node->create_subscription<std_msgs::msg::Float32>("test", 10, std::bind(&RclComm::callback_current_arm_pose, this, std::placeholders::_1));
     this->_clt_plan_path = this->_node->create_client<nav_msgs::srv::GetPlan>("/path_planning/plan_path");
+    this->_clt_smooth_path = this->_node->create_client<navig_msgs::srv::ProcessPath>("/path_planning/smooth_path");
 }
 
 void RclComm::timer_callback()
@@ -69,7 +70,7 @@ bool RclComm::call_plan_path(double start_x, double start_y, double goal_x, doub
     request->start.pose.position.y = start_y;
     request->goal.pose.position.x = goal_x;
     request->goal.pose.position.y = goal_y;
-    std::cout << "JustinaGUI->Waiting for plan path service to be available..." << std::endl;
+    std::cout << "LiraGUI.->Waiting for plan path service to be available..." << std::endl;
     while(!this->_clt_plan_path->wait_for_service(std::chrono::milliseconds(500)))
     {
 	if (!rclcpp::ok()) {
@@ -78,7 +79,7 @@ bool RclComm::call_plan_path(double start_x, double start_y, double goal_x, doub
 	}
 	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service plan path not available, waiting again...");
     }
-    std::cout << "JustinaGUI->Plan path service available. Trying to plan path..." << std::endl;
+    std::cout << "LiraGUI.->Plan path service available. Trying to plan path..." << std::endl;
     auto result = this->_clt_plan_path->async_send_request(request);
     // Wait for the result.
     std::chrono::seconds timeout(5);
@@ -86,15 +87,40 @@ bool RclComm::call_plan_path(double start_x, double start_y, double goal_x, doub
     if (success)
     {
 	path = result.get()->plan;
-	std::cout << "JustinaGUI.->Path planned successfully. Path with " << path.poses.size() << " points." << std::endl;
+	std::cout << "LiraGUI.->Path planned successfully. Path with " << path.poses.size() << " points." << std::endl;
 	return true;
     } else {
-	std::cout << "JustinaGUI.->Cannot plan path :'(" << std::endl;
+	std::cout << "LiraGUI.->Cannot plan path :'(" << std::endl;
 	return false;
     }
     return true;
 }
 
+bool RclComm::call_smooth_path(nav_msgs::msg::Path& path, nav_msgs::msg::Path& smooth_path)
+{
+    auto request = std::make_shared<navig_msgs::srv::ProcessPath::Request>();
+    request->path = path;
+    if(!this->_clt_smooth_path->wait_for_service(std::chrono::milliseconds(500)))
+    {
+	RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "service smooth path not available, waiting again...");
+	return false;
+    }
+    std::cout << "LiraGUI.->Smooth path service available. Trying to plan path..." << std::endl;
+    auto result = this->_clt_smooth_path->async_send_request(request);
+    // Wait for the result.
+    std::chrono::seconds timeout(5);
+    bool success = rclcpp::spin_until_future_complete(this->_node, result, timeout) == rclcpp::FutureReturnCode::SUCCESS;
+    if (success)
+    {
+	smooth_path = result.get()->processed_path;
+	std::cout << "LiraGUI.->Path smoothed successfully."<< std::endl;
+	return true;
+    } else {
+	std::cout << "LiraGUI.->Cannot smooth path :'(" << std::endl;
+	return false;
+    }
+    return true;
+}
 // void RclComm::recv_callback(const std_msgs::msg::String &msg)
 // {
 //     emit emitTopicData("pub send a msgs:" + QString::fromStdString(msg.data));
