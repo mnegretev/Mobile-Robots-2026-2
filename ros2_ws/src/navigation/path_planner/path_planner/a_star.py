@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Rodriguez Torres Angel Adrian"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -62,7 +62,50 @@ class AStarNode(Node):
         #             mark r,c as 'in_open_list'
         #             add r,c to open list (check heapq.heappush)
         #
-        
+        while len(open_list) > 0:
+            current_f, current_node = heapq.heappop(open_list)
+            row, col = current_node[0], current_node[1]
+
+            if row == goal_r and col == goal_c:
+                break
+            
+            in_closed_list[row, col] = True
+
+            for adj in adjacents:
+                r_offset, c_offset, dist = adj[0], adj[1], adj [2]
+                r = row + r_offset
+                c = col + c_offset
+                
+                if r < 0 or r >= height or c < 0 or c >= width:
+                    continue
+                if grid_map[r, c] > 50 or grid_map[r, c] == -1 or in_closed_list[r, c]:
+                    continue
+
+                costo_extra = cost_map[r, c] / 100.0 
+                tentative_g = g_values[row, col] + dist + costo_extra
+                
+                if use_diagonals:
+                    
+                    h = math.hypot(goal_r - r, goal_c - c)
+                else:
+                    
+                    h = abs(goal_r - r) + abs(goal_c - c)
+                
+                f = h + tentative_g
+
+                if tentative_g < g_values[r, c]:
+                    
+                    g_values[r, c] = tentative_g
+                    
+                    f_values[r, c] = f
+                    
+                    parent_nodes[r, c] = [row, col]
+
+                    if not in_open_list[r, c]:
+                        in_open_list[r, c] = True
+                        heapq.heappush(open_list, (f, [r, c]))
+                    else:
+                        heapq.heappush(open_list, (f,[r,c]))
         #
         # END OF WHILE
         #
