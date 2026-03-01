@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Saldivar Pantoja Oscar"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -65,7 +65,49 @@ class AStarNode(Node):
         
         #
         # END OF WHILE
-        #
+        ## WHILE open list is not empty and current is different from goal:
+        while open_list and (row != goal_r or col != goal_c):
+            # Get current node [row,col] from open list (see heapq.heappop function)
+            f_curr, [row, col] = heapq.heappop(open_list)
+            
+            # Mark current node as 'in_closed_list'
+            in_closed_list[row, col] = True
+
+            # For [dr, dc, cost] in adjacent nodes:
+            for dr, dc, cost in adjacents:
+                # Get r,c indices of neighbours of current node
+                r, c = row + dr, col + dc
+                
+                # Discard if r,c is out of map, occupied, unknown or in closed list
+                if r < 0 or r >= height or c < 0 or c >= width: continue
+                if grid_map[r, c] > 50 or grid_map[r, c] < 0 or in_closed_list[r, c]: continue
+                
+                # get a g-value g as: g-value of current node + dist + cost of neighbour r,c
+                # Nota: cost_grid[r,c] ayuda a que el robot prefiera zonas de bajo costo
+                g = g_values[row, col] + cost + cost_map[r, c] / 10.0
+                
+                # Calculate heuristic (distancia euclidiana a la meta)
+                h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
+                
+                # Calculate f-value
+                f = g + h
+                
+   # IF g < g_value of neighbour r,c:
+                if g < g_values[r, c]:
+                    # set g as g_value of neighbour r,c
+                    g_values[r, c] = g
+                    # set f as f_value of neighbour r,c
+                    f_values[r, c] = f
+                    # SET current node row,col as parent of neighbour r,c
+                    parent_nodes[r, c] = [row, col]
+                
+                    # If neighbour r,c is not in open list:
+                    if not in_open_list[r, c]:
+                        # mark r,c as 'in_open_list'
+                        in_open_list[r, c] = True
+                        # add r,c to open list
+                        heapq.heappush(open_list, (f_values[r, c], [r, c]))
+        
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
