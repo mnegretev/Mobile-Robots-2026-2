@@ -15,6 +15,9 @@ from nav_msgs.msg import Path
 from nav_msgs.srv import *
 from builtin_interfaces.msg import Duration
 from collections import deque
+import csv
+import time
+from datetime import datetime
 import numpy
 import heapq
 import math
@@ -91,6 +94,56 @@ class AStarNode(Node):
             path.insert(0, [goal_r, goal_c])
             [goal_r, goal_c] = parent_nodes[goal_r, goal_c]
         return path
+    
+    def run_benchmarks(self, start_points, goal_points, use_diagonals_list, num_trials):
+        results = []
+        for start in start_points:
+            for goal in goal_points:
+                for use_diagonals in use_diagonals_list:
+                    times = []
+                    successes = 0
+                    for trial in range(num_trials):
+                        start_time = time.time()
+                        path = self.a_star(int((start[1]-self.inflated_map.info.origin.position.y)/self.inflated_map.info.resolution), 
+                                            int((start[0]-self.inflated_map.info.origin.position.x)/self.inflated_map.info.resolution), 
+                                            int((goal[1]-self.inflated_map.info.origin.position.y)/self.inflated_map.info.resolution), 
+                                            int((goal[0]-self.inflated_map.info.origin.position.x)/self.inflated_map.info.resolution), 
+                                            numpy.reshape(numpy.asarray(self.inflated_map.data), (self.inflated_map.info.height, self.inflated_map.info.width)), 
+                                            numpy.reshape(numpy.asarray(self.cost_map.data)    , (self.cost_map.info.height, self.cost_map.info.width)), 
+                                            use_diagonals)
+                        end_time = time.time()
+                        delta_ms = (end_time - start_time) * 1000
+                        success = 1 if len(path) > 1 else 0
+                        successes += success
+                        times.append(delta_ms)
+                        results.append({
+                            'start': start,
+                            'goal': goal,
+                            'diagonals': use_diagonals,
+                            'trial': trial + 1,
+                            'success': success,
+                            'time_ms': delta_ms,
+                            'path_length': len(path)
+                        })
+                        success_rate = (successes/num_trials)*100
+                        avg_time = numpy.mean(times)
+                        print(f"Start: {start} -> Goal: {goal}," 
+                            f" Diagonals: {use_diagonals}, "
+                            f"Trial: {trial+1}/{num_trials}, "
+                            f"Success Rate: {success_rate:.2f}%, "
+                            f"Avg Time: {avg_time:.2f} ms")
+                        
+        # Export results to CSV
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"a_star_benchmark_{timestamp}.csv"
+        with open(filename, mode='w', newline='') as csv_file:
+            fieldnames = ['start', 'goal', 'diagonals', 'trial', 'success', 'time_ms', 'path_length']
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+            writer.writeheader()
+            for result in results:
+                writer.writerow(result)
+        self.get_logger().info(f"Results exported to: {filename}")
+        return results
 
     def get_maps(self):
         self.get_logger().info("Waiting for inflated map service...")

@@ -29,7 +29,15 @@ class PathSmoothingNode(Node):
         P = numpy.copy(Q)
         tol     = 0.00001                   
         nabla   = numpy.full(Q.shape, float("inf"))
-        epsilon = 0.1                       
+        epsilon = 0.1
+        
+        nabla[0] = 0
+        nabla[-1] = 0
+        while numpy.linalg.norm(nabla) > tol and max_steps > 0:
+            for i in range(1, len(Q)-1):
+                nabla[i] = w1 * (2*P[i] - P[i-1] - P[i+1]) + w2 * (P[i] - Q[i])
+            P = P - epsilon * nabla
+            max_steps -= 1                     
         
         return P
 

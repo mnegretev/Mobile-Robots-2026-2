@@ -58,7 +58,6 @@ class RRTNode(Node):
                     for max_att in max_attempts_list:
                         successes = 0
                         times = []
-
                         # Run multiple trials for this configuration
                         for trial in range(num_trials):
                             start_time = time.time()
@@ -68,16 +67,13 @@ class RRTNode(Node):
 
                             exec_time = (end_time - start_time) * 1000  # Convert to ms
                             success = 1 if len(path) > 1 else 0
-
                             successes += success
                             times.append(exec_time)
 
                             # Store result
                             results.append({
-                                'start_x': start[0],
-                                'start_y': start[1],
-                                'goal_x': goal[0],
-                                'goal_y': goal[1],
+                                'start': start,
+                                'goal': goal,
                                 'epsilon': epsilon,
                                 'max_attempts': max_att,
                                 'trial': trial + 1,
@@ -98,12 +94,11 @@ class RRTNode(Node):
         csv_filename = f"rrt_benchmark_{timestamp}.csv"
 
         with open(csv_filename, 'w', newline='') as csvfile:
-            fieldnames = ['start_x', 'start_y', 'goal_x', 'goal_y', 'epsilon',
+            fieldnames = ['start','goal', 'epsilon',
                         'max_attempts', 'trial', 'success', 'execution_time_ms', 'path_length']
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(results)
-
         print(f"\nResults exported to: {csv_filename}")
         return results
     

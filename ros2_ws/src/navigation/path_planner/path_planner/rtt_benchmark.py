@@ -15,21 +15,21 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python3 run_benchmark.py --starts "0,0" "5,5" --goals "10,10" "15,15" --epsilons 0.5 1.0 --attempts 500 1000 --trials 3
+  python3 rtt_benchmark.py --starts "0,0" "5,5" --goals "10,10" "15,15" --epsilons 0.5 1.0 --attempts 500 1000 --trials 3
 
-  python3 run_benchmark.py --starts "0,0" --goals "5,5" --epsilons 0.5 1.0 1.5 --attempts 500 1000 --trials 5
+  python3 rtt_benchmark.py --starts "0,0" --goals "5,2" "10,4" "7.5,3.6" "3,-3" --epsilons 0.2 0.3 0.4 0.5 --attempts 500 1000 1500 2000 --trials 5
         """)
 
     parser.add_argument('--starts', nargs='+', default=['0,0'],
                         help='Start points as "x,y" (default: "0,0")')
-    parser.add_argument('--goals', nargs='+', default=['5,5'],
-                        help='Goal points as "x,y" (default: "5,5")')
-    parser.add_argument('--epsilons', nargs='+', type=float, default=[0.5, 1.0],
-                        help='Epsilon values to test (default: 0.5 1.0)')
-    parser.add_argument('--attempts', nargs='+', type=int, default=[500, 1000],
-                        help='Max attempts values to test (default: 500 1000)')
-    parser.add_argument('--trials', type=int, default=3,
-                        help='Number of trials per configuration (default: 3)')
+    parser.add_argument('--goals', nargs='+', default=['5,2'],
+                        help='Goal points as "x,y" (default: "5,2")')
+    parser.add_argument('--epsilons', nargs='+', type=float, default=[0.2, 0.3, 0.4, 0.5],
+                        help='Epsilon values to test (default: 0.2 0.3 0.4 0.5)')
+    parser.add_argument('--attempts', nargs='+', type=int, default=[500, 1000, 1500, 2000],
+                        help='Max attempts values to test (default: 500 1000 1500 2000)')
+    parser.add_argument('--trials', type=int, default=5,
+                        help='Number of trials per configuration (default: 5)')
 
     args = parser.parse_args()
 
