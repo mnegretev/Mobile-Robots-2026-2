@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Diaz Rivera Javier Enrique"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -39,6 +39,38 @@ class AStarNode(Node):
         in_open_list[start_r, start_c] = True
         g_values    [start_r, start_c] = 0
         [row, col]= [start_r, start_c]   #Current node
+
+        while len(open_list) > 0 and [row,col] != [goal_r,goal_c]:
+            #agarra el nodo con más f de la OL
+            current_node = heapq.heappop(open_list)[1]
+            row,col = current_node
+            in_closed_list[row, col] = True
+            for r,c,cost in adjacents:
+                #print (r,c,cost)
+                neighbour_r,neighbour_c = row+r,col+c
+                if neighbour_r < 0 or neighbour_c < 0 or neighbour_r >= height or neighbour_c>=width or in_closed_list[neighbour_r,neighbour_c] or grid_map[neighbour_r, neighbour_c] > 50 or grid_map[neighbour_r, neighbour_c] == -1:
+                    continue
+                g_new_value = g_values[row,col] + cost + cost_map[neighbour_r,neighbour_c]
+                if use_diagonals:
+                    heuristic = math.sqrt(((goal_r-neighbour_r)**2)+((goal_c-neighbour_c)**2))
+                    #Distancia euclidiana
+                else:
+                    heuristic = abs(goal_r-neighbour_r)+abs(goal_c-neighbour_c)
+                    #Distancia de Manhattan
+                f_new_value = g_new_value + heuristic
+                if g_new_value < g_values[neighbour_r,neighbour_c]:
+                    g_values[neighbour_r,neighbour_c] = g_new_value
+                    f_values[neighbour_r,neighbour_c] = f_new_value
+                    parent_nodes [neighbour_r,neighbour_c] = [row,col]
+
+                    if in_open_list[neighbour_r,neighbour_c] == False:
+                        in_open_list[neighbour_r,neighbour_c] == True
+                        heapq.heappush(open_list, (f_values[neighbour_r,neighbour_c], [neighbour_r, neighbour_c]))
+                    
+            #print (row,col,goal_r,goal_c)
+
+
+
         #
         # TODO:
         # Implement the A* algorithm for path planning
@@ -54,7 +86,7 @@ class AStarNode(Node):
         #         get a g-value g as: g-value of current node + dist + cost of neighbour r,c
         #         Calculate heuristic 
         #         Calculate f-value
-        #         IF g < g_value of neighbour r,c:
+        #         IF g < g_vaprint (row,col,goal_r,goal_c)lue of neighbour r,c:
         #             set g as g_value of neighbour r,c
         #             set f as f_value of neighbour r,c
         #             SET current node row,col as parent of neighbour r,c
@@ -66,6 +98,7 @@ class AStarNode(Node):
         #
         # END OF WHILE
         #
+        
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
