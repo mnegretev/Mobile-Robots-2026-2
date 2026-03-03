@@ -13,7 +13,7 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Galicia Rioja Angel Daniel"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
@@ -26,11 +26,25 @@ class PathSmoothingNode(Node):
         # The smoothed path must have the same shape.
         # Return the smoothed path.
         #
+        # handle trivial cases (empty path or single point)
+        if Q.size == 0:
+            return Q
+        if len(Q) < 3:
+            # nothing to smooth if only start and goal
+            return numpy.copy(Q)
+
         P = numpy.copy(Q)
         tol     = 0.00001                   
         nabla   = numpy.full(Q.shape, float("inf"))
-        epsilon = 0.1                       
-        
+        epsilon = 0.1
+
+        # boundary points should not move
+        nabla[0], nabla[-1] = 0, 0
+        while numpy.linalg.norm(nabla) > tol*len(P) and max_steps > 0:                      
+            for i in range(1, len(Q)-1):
+                nabla[i] = w1 * (2*P[i] - P[i-1] - P[i+1]) + w2 * (P[i] - Q[i])
+            P = P - epsilon * nabla
+            max_steps -= 1
         return P
 
     def callback_smooth_path(self, request, response):

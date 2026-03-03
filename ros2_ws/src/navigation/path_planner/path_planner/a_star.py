@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Galicia Rioja Angel Daniel"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -39,6 +39,7 @@ class AStarNode(Node):
         in_open_list[start_r, start_c] = True
         g_values    [start_r, start_c] = 0
         [row, col]= [start_r, start_c]   #Current node
+        path = []  # will store resulting path
         #
         # TODO:
         # Implement the A* algorithm for path planning
@@ -66,10 +67,42 @@ class AStarNode(Node):
         #
         # END OF WHILE
         #
+        while open_list and [row, col] != [goal_r, goal_c]:
+            _, [row, col] = heapq.heappop(open_list)
+            in_open_list[row, col] = False
+            in_closed_list[row, col] = True
+            
+            for [dr, dc, cost] in adjacents:
+                r, c = row + dr, col + dc
+                
+                if r < 0 or r >= height or c < 0 or c >= width:
+                    continue
+                if grid_map[r, c] > 0 or in_closed_list[r, c]:
+                    continue
+                
+                g = g_values[row, col] + math.sqrt(dr**2 + dc**2) + cost_map[r, c]
+                h = math.sqrt((r - goal_r)**2 + (c - goal_c)**2)
+                f = g + h
+                
+                if g < g_values[r, c]:
+                    g_values[r, c] = g
+                    f_values[r, c] = f
+                    parent_nodes[r, c] = [row, col]
+                
+                if not in_open_list[r, c]:
+                    in_open_list[r, c] = True
+                    heapq.heappush(open_list, (f, [r, c]))
+
+        # reconstruct path from goal back to start
         path = []
-        while parent_nodes[goal_r, goal_c][0] != -1:
-            path.insert(0, [goal_r, goal_c])
-            [goal_r, goal_c] = parent_nodes[goal_r, goal_c]
+        # verify goal is within bounds and was reached
+        if goal_r >= 0 and goal_r < height and goal_c >= 0 and goal_c < width:
+            if parent_nodes[goal_r, goal_c][0] != -1 or [goal_r, goal_c] == [start_r, start_c]:
+                # include goal
+                path.insert(0, [goal_r, goal_c])
+                while parent_nodes[goal_r, goal_c][0] != -1:
+                    [goal_r, goal_c] = parent_nodes[goal_r, goal_c]
+                    path.insert(0, [goal_r, goal_c])
         return path
 
     def get_maps(self):
