@@ -80,7 +80,7 @@ class CostMapNode(Node):
         
     def callback_cost_map(self, request, response):
         response.map = self.cost_map
-        return respons
+        return response
 
     def callback_timer(self):
         self.map_info   = self.map_static.info

@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Ivan Daniel Romero Velazquez"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -66,6 +66,51 @@ class AStarNode(Node):
         #
         # END OF WHILE
         #
+        while open_list and ([row, col] != [goal_r, goal_c]):
+        # Remover de OL el nodo con el menor valor f
+            f_val, [row, col] = heapq.heappop(open_list)
+            if in_closed_list[row, col]:
+                continue
+           
+            in_closed_list[row, col] = True
+        
+        # Para cada vecino del nodo actual
+            for dr, dc, step_cost in adjacents:
+                r, c = row + dr, col + dc
+            
+            # 1. Descartar si está fuera del mapa
+                if not (0 <= r < height and 0 <= c < width):
+                    continue
+            
+            # 2. Descartar si es un obstáculo (según grid_map) o si ya está en CL
+            # Asumiendo que grid_map != 0 o similar indica ocupado. Ajustar según tu mapa:
+                if grid_map[r, c] >50 or in_closed_list[r, c]:
+                    continue
+            
+            # Calcular g temporal: g(actual) + costo del paso + costo adicional del mapa
+            # g = g(nc) + costo(nc, n)
+                tentative_g = g_values[row, col] + step_cost + cost_map[r, c]
+            
+            # Si encontramos un camino mejor hacia este vecino
+                if tentative_g < g_values[r, c]:
+                # Actualizar g(n) y prev(n)
+                    g_values[r, c] = tentative_g
+                
+                # Calcular heurística (Distancia Euclidiana o Manhattan)
+                # h(n)
+                    h = numpy.sqrt((r - goal_r)**2 + (c - goal_c)**2)
+                
+                # f(n) = g(n) + h(n)
+                    f_values[r, c] = tentative_g + h
+                    parent_nodes[r, c] = [row, col]
+
+                
+                # Agregar a OL si no ha sido visitado o para re-evaluarlo
+                    in_open_list[r, c] = True
+                    heapq.heappush(open_list, (f_values[r, c], [r, c]))
+
+    # El bloque final para reconstruir la ruta ya lo tienes en tu imagen, 
+    # solo asegúrate de que use las variables actualizadas.
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
