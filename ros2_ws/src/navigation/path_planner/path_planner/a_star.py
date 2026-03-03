@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Claudia Eunice Vazquez Rios"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -61,11 +61,53 @@ class AStarNode(Node):
         #         If neighbour r,c is not in open list:
         #             mark r,c as 'in_open_list'
         #             add r,c to open list (check heapq.heappush)
-        #
-        
-        #
         # END OF WHILE
         #
+        while len(open_list) > 0 and [row, col] != [goal_r, goal_c]:
+        # 1. Extraer nodo con menor f de la open list
+             _, current = heapq.heappop(open_list)
+             [row, col] = current
+
+        # 2. Marcar nodo actual como visitado (closed list)
+             in_closed_list[row, col] = True
+
+        # 3. Expandir vecinos
+             for [dr, dc, move_cost] in adjacents:
+                 r = row + dr
+                 c = col + dc
+
+        # Descartar si está fuera del mapa
+                 if r < 0 or r >= height or c < 0 or c >= width:
+                     continue
+
+        # Descartar si está ocupado, desconocido o en closed list
+                 if grid_map[r, c] != 0:
+                      continue
+                 if in_closed_list[r, c]:
+                      continue
+
+        # Calcular nuevo g: distancia + costo normalizado del cost_map
+                 cell_cost = cost_map[r, c] / 100.0 if cost_map[r, c] >= 0 else 0.0
+                 g = g_values[row, col] + move_cost + cell_cost
+
+        # Heurística: distancia Euclidiana al goal
+                 h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
+
+        # Valor f
+                 f = g + h
+
+        # Actualizar si encontramos un camino más corto al vecino
+                 if g < g_values[r, c]:
+                     g_values[r, c]     = g
+                     f_values[r, c]     = f
+                     parent_nodes[r, c] = [row, col]
+
+        # Agregar a open list si aún no está
+                 if not in_open_list[r, c]:
+                     in_open_list[r, c] = True
+                     heapq.heappush(open_list, (f, [r, c]))
+ 
+
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
