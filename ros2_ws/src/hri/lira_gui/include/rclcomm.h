@@ -9,6 +9,9 @@
 #include "nav_msgs/srv/get_plan.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "navig_msgs/srv/process_path.hpp"
+
+
 class RclComm : public QThread, rclcpp::Node
 {
     Q_OBJECT
@@ -21,6 +24,7 @@ public:
     void start_publishing_cmd_vel(double linear_x, double angular);
     void stop_publishing_cmd_vel();
     bool call_plan_path(double start_x, double start_y, double goal_x, double goal_y, nav_msgs::msg::Path& path);
+    bool call_smooth_path(nav_msgs::msg::Path& path, nav_msgs::msg::Path& smooth_path);
 
 private:
     bool _publishing_cmd_vel;
@@ -31,6 +35,7 @@ private:
     rclcpp::Subscription<std_msgs::msg::Float32>::SharedPtr _sub_test;
 
     rclcpp::Client<nav_msgs::srv::GetPlan>::SharedPtr _clt_plan_path;
+    rclcpp::Client<navig_msgs::srv::ProcessPath>::SharedPtr _clt_smooth_path;
 
     void timer_callback();
     void callback_current_arm_pose(const std_msgs::msg::Float32 &msg);
