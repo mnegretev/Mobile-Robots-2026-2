@@ -13,7 +13,7 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Santiago Cruz Plaza"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
@@ -27,10 +27,19 @@ class PathSmoothingNode(Node):
         # Return the smoothed path.
         #
         P = numpy.copy(Q)
-        tol     = 0.00001                   
+        tol     = 0.00001
         nabla   = numpy.full(Q.shape, float("inf"))
-        epsilon = 0.1                       
-        
+        epsilon = 0.1
+        #Tarea05
+        steps = 0
+
+        nabla[0], nabla[-1] = 0,0
+        while numpy.linalg.norm(nabla) > tol*len(P) and max_steps > 0:
+            for i in range(1, len(Q)-1):
+                nabla[i] = w1*(2*P[i] - P[i-1] - P[i+1]) + w2*(P[i] - Q[i])
+            P= P - epsilon*nabla
+            max_steps -= 1
+
         return P
 
     def callback_smooth_path(self, request, response):
@@ -55,7 +64,7 @@ class PathSmoothingNode(Node):
         self.pub_smooth_path.publish(self.msg_smooth_path)
         response.processed_path = self.msg_smooth_path
         return response
-            
+
     def __init__(self):
         super().__init__("path_smoothing_node")
         self.get_logger().info("INITIALIZING PATH SMOOTHING NODE - " + NAME)
@@ -65,7 +74,7 @@ class PathSmoothingNode(Node):
         self.srv_smooth_path = self.create_service(ProcessPath, '/path_planning/smooth_path', self.callback_smooth_path)
         self.pub_smooth_path = self.create_publisher(Path, '/path_planning/smoothed_path', 10)
         self.msg_smooth_path = Path()
-            
+
 def main(args=None):
     rclpy.init(args=args)
     path_smoothing_node = PathSmoothingNode()
@@ -73,6 +82,6 @@ def main(args=None):
     path_smoothing_node.destroy_node()
     rclpy.shutdown()
 
-    
+
 if __name__ == '__main__':
     main()
