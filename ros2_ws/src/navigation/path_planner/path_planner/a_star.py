@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Itzel Guadalupe Campos Martinez"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -35,9 +35,11 @@ class AStarNode(Node):
         else:
             adjacents = [[1,0,1],[0,1,1],[-1,0,1],[0,-1,1]]
 
+        
         heapq.heappush(open_list, (0, [start_r, start_c]))
         in_open_list[start_r, start_c] = True
         g_values    [start_r, start_c] = 0
+        f_values[start_r, start_c] = 0
         [row, col]= [start_r, start_c]   #Current node
         #
         # TODO:
@@ -66,6 +68,35 @@ class AStarNode(Node):
         #
         # END OF WHILE
         #
+        while len(open_list) > 0:
+            current_f, [row, col] = heapq.heappop(open_list)
+            if in_closed_list[row, col]:
+                continue
+            in_closed_list[row, col] = True
+            if row == goal_r and col == goal_c:
+                break
+            for [dr, dc, move_cost] in adjacents:
+                r = row + dr
+                c = col + dc
+                if r < 0 or r >= height or c < 0 or c >= width:
+                    continue
+                if grid_map[r, c] == 100:
+                    continue
+                if grid_map[r, c] == -1:
+                    continue
+                if in_closed_list[r, c]:
+                    continue
+                g = g_values[row, col] + move_cost + cost_map[r, c]/100.0
+                h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
+                f = g + h
+                if g < g_values[r, c]:
+                    g_values[r, c] = g
+                    f_values[r, c] = f
+                    parent_nodes[r, c] = [row, col]
+                    heapq.heappush(open_list, (f, [r, c]))
+                    in_open_list[r, c] = True
+
+
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
@@ -115,6 +146,20 @@ class AStarNode(Node):
         
         self.get_logger().info("Planning path by A* from " + str([sx, sy])+" to "+str([gx, gy]))
         start_time = self.get_clock().now()
+
+
+#Aqui empieza la prueba
+        start_r = int((sy-zy)/res)
+        start_c = int((sx-zx)/res)
+        goal_r  = int((gy-zy)/res)
+        goal_c  = int((gx-zx)/res)
+
+        self.get_logger().info(f"Start index: ({start_r}, {start_c})")
+        self.get_logger().info(f"Goal index:  ({goal_r}, {goal_c})")
+        self.get_logger().info(f"Goal value in grid: {inflated_grid[goal_r, goal_c]}")
+
+
+#Aqui termina la prueba 
         path = self.a_star(int((sy-zy)/res), int((sx-zx)/res), int((gy-zy)/res), int((gx-zx)/res),
                            inflated_grid, cost_grid, use_diagonals)
         end_time = self.get_clock().now()
