@@ -81,7 +81,7 @@ class AStarNode(Node):
                     continue
 
                 g=g_values[row,col]+cost +cost_map[r,c]
-                #euclidiana
+               
                 if use_diagonals:
                     h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
                 else:
