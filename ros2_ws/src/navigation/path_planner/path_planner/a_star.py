@@ -18,8 +18,11 @@ from collections import deque
 import numpy
 import heapq
 import math
+import numpy
+import heapq
+from rclpy.node import Node
 
-NAME = "FULL NAME"
+NAME = "Daniel Santiago Martínez"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -66,6 +69,61 @@ class AStarNode(Node):
         #
         # END OF WHILE
         #
+
+        while open_list and [row, col] != [goal_r, goal_c]:
+
+            # Sacar nodo con menor f
+            current_f, [row, col] = heapq.heappop(open_list)
+
+            # Si ya fue cerrado, saltar
+            if in_closed_list[row, col]:
+                continue
+
+            in_closed_list[row, col] = True
+            in_open_list[row, col] = False
+
+            # Revisar vecinos
+            for dr, dc, dist in adjacents:
+
+                r = row + dr
+                c = col + dc
+
+                # Verificar límites
+                if r < 0 or r >= height or c < 0 or c >= width:
+                    continue
+
+                # Verificar obstáculo (inflated map)
+                if grid_map[r, c] != 0:
+                    continue
+
+                # Si ya está cerrado
+                if in_closed_list[r, c]:
+                    continue
+
+                # Calcular nuevo g
+                g = g_values[row, col] + dist + cost_map[r, c]
+
+                # Si es mejor camino
+                if g < g_values[r, c]:
+
+                    g_values[r, c] = g
+
+                    # Heurística
+                    if use_diagonals:
+                        h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
+                    else:
+                        h = abs(goal_r - r) + abs(goal_c - c)
+
+                    f = g + h
+                    f_values[r, c] = f
+
+                    parent_nodes[r, c] = [row, col]
+
+                    # Agregar a open list si no está
+                    if not in_open_list[r, c]:
+                        heapq.heappush(open_list, (f, [r, c]))
+                        in_open_list[r, c] = True
+
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
