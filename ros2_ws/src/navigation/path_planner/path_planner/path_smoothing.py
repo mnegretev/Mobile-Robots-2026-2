@@ -13,24 +13,33 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Gonzalez Fernandez Jonathan Uriel"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
-        #
-        # TODO:
-        # Write the code to smooth the path Q, using the gradient descend algorithm,
-        # and return a new smoothed path P.
-        # Path is composed of a set of points [x,y] as follows:
-        # [[x0,y0], [x1,y1], ..., [xn,ym]].
-        # The smoothed path must have the same shape.
-        # Return the smoothed path.
-        #
-        P = numpy.copy(Q)
-        tol     = 0.00001                   
-        nabla   = numpy.full(Q.shape, float("inf"))
-        epsilon = 0.1                       
+        # 16. Jonathan Uriel Gonzalez Fernandez
         
+        P = numpy.copy(Q)
+        tol = 0.00001
+        nabla = numpy.full(Q.shape, float("inf"))
+        epsilon = 0.1
+        
+        # El gradiente en el primer y último punto es 0 para que no se muevan de su lugar
+        nabla[0], nabla[-1] = 0, 0
+        
+        # Ciclo while principal del descenso de gradiente
+        while numpy.linalg.norm(nabla) > tol * len(P) and max_steps > 0:
+            
+            # Calculamos el gradiente para todos los puntos intermedios
+            for i in range(1, len(Q)-1):
+                nabla[i] = w1 * (2 * P[i] - P[i-1] - P[i+1]) + w2 * (P[i] - Q[i])
+                
+            # Actualizamos las posiciones de la ruta
+            P = P - epsilon * nabla
+            
+            # Reducimos el contador de pasos de seguridad
+            max_steps -= 1
+            
         return P
 
     def callback_smooth_path(self, request, response):
