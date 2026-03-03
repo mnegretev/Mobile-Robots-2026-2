@@ -34,13 +34,13 @@ class RosBasicsNode(Node):
         # Publish the Twist message using the already declared publisher 'pub_cmd_vel'.
         # Publish a point stamped with fixed coordinates (1,0)
         #
-	msg_twist = Twist()
-	msg_twist.linear.x  = 0.0 if self.obstacle_detected else 0.3
-	self.pub_cmd_vel.publish(msg_twist)
-	msg_point = PointStamped()
-	msg_point.header.frame_id="base_link"
-	msg_point.point.x = 1.0
-	self.pub_point.publish(msg_point)        
+        msg_twist = Twist()
+        msg_twist.linear.x  = 0.0 if self.obstacle_detected else 0.3
+        self.pub_cmd_vel.publish(msg_twist)
+        msg_point = PointStamped()
+        msg_point.header.frame_id="base_link"
+        msg_point.point.x = 1.0
+        self.pub_point.publish(msg_point)
         return
 
     def callback_scan(self, msg):
@@ -49,7 +49,7 @@ class RosBasicsNode(Node):
         # Do something to detect if there is an obstacle in front of the robot.
         # Set the 'obstacle_detected' variable with True or False, accordingly.
         #
- 	self.obstacle_detected = msg.ranges[len (msg.ranges)//2] < 1.0       
+        self.obstacle_detected = msg.ranges[len (msg.ranges)//2] < 1.0
         return
 
 

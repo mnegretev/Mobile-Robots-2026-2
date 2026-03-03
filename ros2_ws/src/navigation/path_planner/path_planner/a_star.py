@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "Jose Augusto Garcia Mendoza"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -66,6 +66,89 @@ class AStarNode(Node):
         #
         # END OF WHILE
         #
+                # ---------------------------
+        # A* (grid: filas/columnas)
+        # ---------------------------
+
+        # Caso trivial
+        if start_r == goal_r and start_c == goal_c:
+            return [[start_r, start_c]]
+
+        # Si inicio o meta son no transitables, no hay ruta
+        if grid_map[start_r, start_c] < 0 or grid_map[start_r, start_c] > 50:
+            return []
+        if grid_map[goal_r, goal_c] < 0 or grid_map[goal_r, goal_c] > 50:
+            return []
+
+        # Heurística (h): Euclidiana si hay diagonales; Manhattan si no
+        def heuristic(r, c):
+            if use_diagonals:
+                return math.hypot(goal_r - r, goal_c - c)
+            return abs(goal_r - r) + abs(goal_c - c)
+
+        # Inicializa f del nodo inicial para evitar pops “viejos” al inicio
+        f_values[start_r, start_c] = heuristic(start_r, start_c)
+
+        # Nodo actual (se actualiza con heappop)
+        row, col = start_r, start_c
+
+        # WHILE open list is not empty and current is different from goal:
+        while len(open_list) > 0 and not (row == goal_r and col == goal_c):
+
+            # Get current node [row,col] from open list
+            current_f, [row, col] = heapq.heappop(open_list)
+
+            # Si ya fue cerrado, ignora esta entrada (heapq puede tener duplicados)
+            if in_closed_list[row, col]:
+                continue
+
+            # Si esta entrada no corresponde al mejor f conocido, ignora
+            if current_f > f_values[row, col]:
+                continue
+
+            # Mark current node as 'in_closed_list'
+            in_closed_list[row, col] = True
+            in_open_list[row, col] = False
+
+            # For [r,c,cost] in adjacent nodes:
+            for [dr, dc, move_cost] in adjacents:
+
+                # Get indices of neighbour
+                nr = row + dr
+                nc = col + dc
+
+                # Discard if out of map
+                if nr < 0 or nr >= height or nc < 0 or nc >= width:
+                    continue
+
+                # Discard if occupied, unknown or in closed list
+                if in_closed_list[nr, nc]:
+                    continue
+
+                cell = grid_map[nr, nc]
+                if cell < 0 or cell > 50:
+                    continue
+
+                # g = g(current) + dist + cost(neighbour)
+                # dist ~ move_cost (1 o sqrt(2)); cost(neighbour) lo tomamos del cost_map normalizado
+                extra_cost = float(cost_map[nr, nc]) / 100.0
+                g = g_values[row, col] + float(move_cost) + extra_cost
+
+                # Calculate heuristic and f
+                h = heuristic(nr, nc)
+                f = g + h
+
+                # IF g < g_value of neighbour:
+                if g < g_values[nr, nc]:
+                    g_values[nr, nc] = g
+                    f_values[nr, nc] = f
+                    parent_nodes[nr, nc] = [row, col]
+
+                    # If neighbour is not in open list, add it
+                    # (aunque ya esté, se inserta de nuevo; se filtran duplicados al hacer pop)
+                    if not in_open_list[nr, nc]:
+                        in_open_list[nr, nc] = True
+                    heapq.heappush(open_list, (f, [nr, nc]))
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
