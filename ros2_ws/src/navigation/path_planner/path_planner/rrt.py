@@ -19,12 +19,12 @@ from collections import deque
 import numpy
 import heapq
 import math
-# ---------- CAMBIO: imports para exportar a CSV ----------
-import csv
+# imports nuevos -----------
 import os
+import csv
 from datetime import datetime
-# ---------------------------------------------------------
-NAME = "Irving Rodriguez Ruiz"
+
+NAME = "Irving Rodriguez Ruiz" #Cambio 
 
 class TreeNode:
     def __init__(self, x, y, parent=None):
@@ -95,7 +95,8 @@ class RRTNode(Node):
         # Goal node is also already created.
         # Return both, the tree and the path. You can follow these steps:
         #
-        while goal_node.parent is None and max_attempts > 0:
+        #Cambio
+        while goal_node.parent is None and max_attempts > 0:  
             [x, y] = self.get_random_q(grid_map)
             nearest_node = self.get_nearest_node(tree, x, y)
             new_node = self.get_new_node(nearest_node, x, y, epsilon)
@@ -105,8 +106,6 @@ class RRTNode(Node):
                     new_node.children.append(goal_node)
                     goal_node.parent = new_node
             max_attempts -= 1
-        
-        
         path = []
         while goal_node is not None:
             path.insert(0, [goal_node.x, goal_node.y])
@@ -145,102 +144,171 @@ class RRTNode(Node):
         self.get_logger().info("Got inflated map.")
         return response.map
         
-# >>> CAMBIO: función para registrar resultados a CSV
-    def log_rrt_result_csv(self, sx, sy, gx, gy, eps, n, success, delta_ms):
-        csv_path = os.path.expanduser("~/rrt_results.csv")
-        file_exists = os.path.isfile(csv_path)
+#----------------------------------------------------------------------------------
+# Función agregada
+    def ejecutar_experimentos_rrt(self, start, goal, epsilon, max_attempts ):
+        """
+        Corre experimentos barriendo eps y N (definidos aquí dentro),
+        genera CSV con timestamp y regresa la mejor (árbol, ruta) global.
+        """
+        # ------------------ CONFIG DE PARÁMETROS ------------------
+        lista_epsilons = [epsilon, 0.1, 0.75, 1.2]
+        lista_intentos = [max_attempts, 50, 700, 2000]
+        repeticiones   = 5
+        prefijo_csv    = "rrt_resultados"
 
-        with open(csv_path, "a", newline="") as f:
-            w = csv.writer(f)
-            if not file_exists:
-                w.writerow([
-                    "timestamp", "start_x", "start_y", "goal_x", "goal_y",
-                    "epsilon", "N", "success", "time_ms"
-                ])
-            w.writerow([
-                datetime.now().isoformat(),
-                sx, sy, gx, gy,
-                eps, n, success, delta_ms
+        # ------------------ CSV con timestamp ------------------
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        workspace_root = os.getcwd()  # donde se ejecuta ros2 run
+        src_path = os.path.join(workspace_root,"src","navigation","path_planner","path_planner")
+        csv_filename = os.path.join(src_path,f"{prefijo_csv}_{timestamp}.csv")
+
+        (sx, sy) = start
+        (gx, gy) = goal
+
+        self.get_logger().info(f"Parametros -> eps: {lista_epsilons} , N: {lista_intentos}, Rep: {repeticiones}")
+        self.get_logger().info("-" * 90)
+
+        # Mejor GLOBAL (entre todos eps, N, repeticiones)
+        best_dt = None
+        best_tree = None
+        best_path = None
+        best_params = None  # (eps, N, rep)
+
+        with open(csv_filename, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "Rep",
+                "start",
+                "goal",
+                "epsilon",
+                "max_attempts",
+                "success",
+                "execution_time_ms"
             ])
-# ---------------------------------------------------------
-   
+            total_success = 0
+            total_trials = 0
+            trial_id = 0
+            self.get_logger().info("rep | start | goal | eps | N | exito | t_ms")
+            for eps in lista_epsilons:
+                for N in lista_intentos:
+
+                    exitos = 0
+                    mejor_local = None
+
+                    for rep in range(1, repeticiones + 1):
+                        trial_id += 1
+
+                        t0 = self.get_clock().now()
+                        tree, path = self.rrt(sx, sy, gx, gy, self.grid_map, eps, N)
+                        t1 = self.get_clock().now()
+
+                        dt_ms = (t1.nanoseconds - t0.nanoseconds) / 1e6
+                        success = 1 if len(path) > 1 else 0
+
+                        writer.writerow([
+                            rep,
+                            (sx, sy),
+                            (gx, gy),
+                            eps,
+                            N,
+                            success,
+                            dt_ms
+                        ])
+                        
+                        total_trials += 1
+                        total_success += success
+                            
+                        if success:
+                            exitos += 1
+                            if (mejor_local is None) or (dt_ms < mejor_local):
+                                mejor_local = dt_ms
+
+                            # Mejor GLOBAL para dibujar
+                            if (best_dt is None) or (dt_ms < best_dt):
+                                best_dt = dt_ms
+                                best_tree = tree
+                                best_path = path
+                                best_params = (eps, N, rep)
+                        self.get_logger().info(f"{rep} | {(sx, sy)} | {(gx, gy)} | {eps} | {N} | {success} | {dt_ms:.3f}")
+
+                    if mejor_local is None:
+                        self.get_logger().info(
+                            f"e={eps} N={N} | exitos={exitos}/{repeticiones} | menor_ms=NA"
+                        )
+                    else:
+                        self.get_logger().info(
+                            f"e={eps} N={N} | exitos={exitos}/{repeticiones} | menor_ms={mejor_local:.3f}"
+                        )
+                    self.get_logger().info("-" * 90)
+
+        if best_dt is None:
+            self.get_logger().info(f"Resumen -> exitos: {total_success}/{total_trials} | mejor_global: NA | CSV: {csv_filename}")
+        else:
+            (beps, bN, brep) = best_params
+            self.get_logger().info(f"Resumen -> exitos: {total_success}/{total_trials} | mejor_global: {best_dt:.3f} ms (e={beps}, N={bN}) | CSV: {csv_filename}")
+
+        # Regresamos la mejor solución para que el callback la dibuje (si existe)
+        return best_tree, best_path, csv_filename
+#---------------
+ 
     def callback_rrt(self, req, resp):
         [sx, sy] = [req.start.pose.position.x, req.start.pose.position.y]
         [gx, gy] = [req.goal .pose.position.x, req.goal .pose.position.y]
         epsilon  = self.get_parameter('epsilon').get_parameter_value().double_value
         max_attempts = self.get_parameter('max_n').get_parameter_value().integer_value
-        
-        # ----------------------------------------
-        # Sweep de parámetros en un solo click
-        # Lista de valores de epsilon y N a evaluar
-        eps_list = [epsilon, 0.1, 0.75, 1.2]
-        n_list   = [max_attempts, 50, 400, 1000, 2000, 4000]
-        
-        # Quitar duplicados conservando orden  
-        eps_list = list(dict.fromkeys(eps_list))
-        n_list   = list(dict.fromkeys(n_list))
-        #----------------------------------------------------------
-        
-        #str_data = str([sx,sy]) + " to " + str([gx,gy]) +" with e=" + str(epsilon) +  " and " + str(max_attempts) + " attempts."
-        str_data = str([sx,sy]) + " to " + str([gx,gy]) + " with sweep eps=" + str(eps_list) + " and N=" + str(n_list) # CAMBIO
-        
+        str_data = str([sx,sy]) + " to " + str([gx,gy]) +" with e=" + str(epsilon) +  " and " + str(max_attempts) + " attempts."
         self.get_logger().info("Planning by RRT from " + str_data)
         
-        retries_per_setting = 10  # R = intentos por cada (epsilon, N)
-        best = None  # (delta_ms, tree, path, eps, n) # aGREGADO
-                
+        start_time = self.get_clock().now()
         
-        #Evaluación en cada elemento de las listas
-        for eps in eps_list:
-            for n in n_list:
-                success_count = 0
-                sum_time_success = 0.0
-                best_time_success = None
-                
-                # Corre TODOS los intentos para poder contar #éxitos
-                for k in range(1, retries_per_setting + 1):
-                    start_time = self.get_clock().now()
-                    #tree, path = self.rrt(sx, sy, gx, gy, self.grid_map, epsilon, max_attempts)
-                    tree_try, path_try = self.rrt(sx, sy, gx, gy, self.grid_map, eps, n)
-                    end_time   = self.get_clock().now()
-            
-                    delta_ms = (end_time.nanoseconds - start_time.nanoseconds)/1e6
-                    
-                    # Log a CSV (una fila por intento)
-                    success = 1 if len(path_try) > 0 else 0
-                    self.log_rrt_result_csv(sx, sy, gx, gy, eps, n, success, delta_ms)
-                        
-                    if success:
-                        success_count += 1
-                        sum_time_success += delta_ms
-                        if best_time_success is None or delta_ms < best_time_success:
-                            best_time_success = delta_ms
+        # ----------------------------------------------------------------------
+        # BLoque agregado para determinar si hacer una sola evaluación (run_exp = False) o varias con diferentes parámetros (run_exp = True) 
+        run_exp = self.get_parameter('run_experiments').value
 
-                        # Elegir “mejor global” para mostrar en RViz (por tiempo)
-                        if best is None or delta_ms < best[0]:
-                            best = (delta_ms, tree_try, path_try, eps, n)
-                # Log resumen por combinación (en consola)
-                if success_count > 0:
-                    avg_time = sum_time_success / success_count
-                    self.get_logger().info(
-                        f"SUMMARY e={eps} N={n}: success={success_count}/{retries_per_setting}, "
-                        f"best_success_ms={best_time_success:.3f}, avg_success_ms={avg_time:.3f}"
-                    )
-                else:
-                    self.get_logger().info(
-                        f"SUMMARY e={eps} N={n}: success=0/{retries_per_setting}"
-                    )
-                        
-        # Decide qué mandar a RViz: la mejor ruta (menor tiempo) entre los éxitos
-        if best is None:
-            self.get_logger().info("RESULT: NO path found in any attempt of any (epsilon, N).")
-            tree = TreeNode(sx, sy, None)
-            path = []
+        if run_exp:
+            # Corre experimentos con start/goal de la GUI y regresa la mejor ruta global
+            best_tree, best_path, csv_name = self.ejecutar_experimentos_rrt(
+                start=(sx, sy), 
+                goal=(gx, gy),
+                epsilon=epsilon, 
+                max_attempts=max_attempts               
+            )
+            if (best_path is not None) and (len(best_path) > 0):
+                tree, path = best_tree, best_path
+            else:
+                # Si no hubo éxitos, no hay ruta que dibujar (dejamos lo que regrese vacío)
+                tree, path = best_tree, (best_path if best_path is not None else [])
         else:
-            delta_ms, tree, path, eps_best, n_best = best
-            self.get_logger().info(f"RESULT: PATH FOUND (best time) with e={eps_best}, N={n_best}, time={delta_ms:.3f} ms")
-
-        # Publicación normal (muestra SOLO el mejor resultado)
+            # Corrida normal
+            tree, path = self.rrt(sx, sy, gx, gy, self.grid_map, epsilon, max_attempts)
+        
+        # ----------------------------------------------------------------------
+        
+        #tree, path = self.rrt(sx, sy, gx, gy, self.grid_map, epsilon, max_attempts) # se pasó al else de arriba, Corrida normal
+        end_time   = self.get_clock().now() 
+        delta_ms = (end_time.nanoseconds - start_time.nanoseconds)/1e6
+        
+        # ----------------------------------------------------------------------
+        """
+        # Bloque del código original comentado debido a que representa otra cosa cuando run_exp = True   
+        if len(path) > 0:
+            self.get_logger().info("Path planned after " + str(delta_ms) + " ms")
+        else:
+            self.get_logger().info("Cannot plan path from  " + str([sx, sy])+" to "+str([gx, gy]) + " :'(")
+        """
+        # Se sustituye por el siguiente bloque
+        if not run_exp:
+            # SOLO corrida normal
+            if len(path) > 0:
+                self.get_logger().info("Path planned after " + str(delta_ms) + " ms")
+            else:
+                self.get_logger().info("Cannot plan path from  " + str([sx, sy])+" to "+str([gx, gy]) + " :'(")
+        else:
+            # En modo experimentos, delta_ms es tiempo total del cálculo de cada par
+            self.get_logger().info(f"Planificación de rutas terminado en {delta_ms:.3f} ms (ver CSV)")
+        # -------------------------------------------------------
+        
         self.msg_tree = self.get_tree_marker(tree)
         self.msg_path = Path()
         self.msg_path.header.frame_id = "map"
@@ -269,6 +337,7 @@ class RRTNode(Node):
         self.grid_map = self.get_inflated_map()
         self.declare_parameter('epsilon', 1.0)
         self.declare_parameter('max_n', 100)
+        self.declare_parameter('run_experiments', False) # Agregado ----------------
         self.srv_plan_path = self.create_service(GetPlan, '/path_planning/plan_path', self.callback_rrt)
         self.pub_path = self.create_publisher(Path, '/path_planning/path', 10)
         self.pub_tree = self.create_publisher(Marker, '/path_planning/rrt_tree', 10)
