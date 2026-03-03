@@ -2,11 +2,6 @@
 # MOBILE ROBOTS - FI-UNAM, 2026-2
 # PATH PLANNING BY A-STAR
 #
-# Instructions:
-# Write the code necessary to plan a path using an
-# occupancy grid and the A* algorithm
-# MODIFY ONLY THE SECTIONS MARKED WITH THE 'TODO' COMMENT
-#
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time, Duration
@@ -19,7 +14,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "CARMEN GARCIA MORALES"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -39,33 +34,40 @@ class AStarNode(Node):
         in_open_list[start_r, start_c] = True
         g_values    [start_r, start_c] = 0
         [row, col]= [start_r, start_c]   #Current node
-        #
-        # TODO:
-        # Implement the A* algorithm for path planning
-        # Map is considered to be a 2D array and start and goal positions
-        # are given as row-col pairs. You can follow these steps:
-        #
-        # WHILE open list is not empty and current is different from goal:
-        #     Get current node [row,col] from open list (see heapq.heappop function)
-        #     Mark current node as 'in_closed_list'
-        #     For [r,c,cost] in adjacent nodes:
-        #         Get r,c indices of neighbours of current node (check content of adjacents)
-        #         Discard if r,c is out of map, occupied, unknonw or in closed list, and continue
-        #         get a g-value g as: g-value of current node + dist + cost of neighbour r,c
-        #         Calculate heuristic 
-        #         Calculate f-value
-        #         IF g < g_value of neighbour r,c:
-        #             set g as g_value of neighbour r,c
-        #             set f as f_value of neighbour r,c
-        #             SET current node row,col as parent of neighbour r,c
-        #         If neighbour r,c is not in open list:
-        #             mark r,c as 'in_open_list'
-        #             add r,c to open list (check heapq.heappush)
-        #
         
-        #
-        # END OF WHILE
-        #
+        # Algoritmo A*
+        while len(open_list) > 0:
+            current_f, [row, col] = heapq.heappop(open_list)
+            
+            if row == goal_r and col == goal_c:
+                break
+                
+            in_closed_list[row, col] = True
+            
+            for adj in adjacents:
+                r = row + adj[0]
+                c = col + adj[1]
+                dist = adj[2]
+                
+                if r < 0 or r >= height or c < 0 or c >= width:
+                    continue
+                    
+                if grid_map[r, c] > 50 or grid_map[r, c] == -1 or in_closed_list[r, c]:
+                    continue
+                    
+                g = g_values[row, col] + dist + (cost_map[r, c] / 100.0)
+                h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
+                f = g + h
+                
+                if g < g_values[r, c]:
+                    g_values[r, c] = g
+                    f_values[r, c] = f
+                    parent_nodes[r, c] = [row, col]
+                    
+                    if not in_open_list[r, c]:
+                        in_open_list[r, c] = True
+                        heapq.heappush(open_list, (f, [r, c]))
+
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
@@ -151,6 +153,5 @@ def main(args=None):
     a_star_node.destroy_node()
     rclpy.shutdown()
 
-    
 if __name__ == '__main__':
     main()
