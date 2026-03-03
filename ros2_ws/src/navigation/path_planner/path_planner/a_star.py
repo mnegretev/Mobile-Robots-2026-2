@@ -19,7 +19,7 @@ import numpy
 import heapq
 import math
 
-NAME = "Saldivar Pantoja Oscar"
+NAME = "SAldivar PAntoja Oscar"
 
 class AStarNode(Node):
     def a_star(self, start_r, start_c, goal_r, goal_c, grid_map, cost_map, use_diagonals):
@@ -62,52 +62,53 @@ class AStarNode(Node):
         #             mark r,c as 'in_open_list'
         #             add r,c to open list (check heapq.heappush)
         #
-        
-        #
-        # END OF WHILE
-        ## WHILE open list is not empty and current is different from goal:
-        while open_list and (row != goal_r or col != goal_c):
-            # Get current node [row,col] from open list (see heapq.heappop function)
-            f_curr, [row, col] = heapq.heappop(open_list)
+        while len(open_list) > 0:
+            current_f, current_node = heapq.heappop(open_list)
+            row, col = current_node[0], current_node[1]
+
+            if row == goal_r and col == goal_c:
+                break
             
-            # Mark current node as 'in_closed_list'
             in_closed_list[row, col] = True
 
-            # For [dr, dc, cost] in adjacent nodes:
-            for dr, dc, cost in adjacents:
-                # Get r,c indices of neighbours of current node
-                r, c = row + dr, col + dc
+            for adj in adjacents:
+                r_offset, c_offset, dist = adj[0], adj[1], adj [2]
+                r = row + r_offset
+                c = col + c_offset
                 
-                # Discard if r,c is out of map, occupied, unknown or in closed list
-                if r < 0 or r >= height or c < 0 or c >= width: continue
-                if grid_map[r, c] > 50 or grid_map[r, c] < 0 or in_closed_list[r, c]: continue
+                if r < 0 or r >= height or c < 0 or c >= width:
+                    continue
+                if grid_map[r, c] > 50 or grid_map[r, c] == -1 or in_closed_list[r, c]:
+                    continue
+
+                costo_extra = cost_map[r, c] / 100.0 
+                tentative_g = g_values[row, col] + dist + costo_extra
                 
-                # get a g-value g as: g-value of current node + dist + cost of neighbour r,c
-                # Nota: cost_grid[r,c] ayuda a que el robot prefiera zonas de bajo costo
-                g = g_values[row, col] + cost + cost_map[r, c] / 10.0
+                if use_diagonals:
+                    
+                    h = math.hypot(goal_r - r, goal_c - c)
+                else:
+                    
+                    h = abs(goal_r - r) + abs(goal_c - c)
                 
-                # Calculate heuristic (distancia euclidiana a la meta)
-                h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
-                
-                # Calculate f-value
-                f = g + h
-                
-   # IF g < g_value of neighbour r,c:
-                if g < g_values[r, c]:
-                    # set g as g_value of neighbour r,c
-                    g_values[r, c] = g
-                    # set f as f_value of neighbour r,c
+                f = h + tentative_g
+
+                if tentative_g < g_values[r, c]:
+                    
+                    g_values[r, c] = tentative_g
+                    
                     f_values[r, c] = f
-                    # SET current node row,col as parent of neighbour r,c
+                    
                     parent_nodes[r, c] = [row, col]
-                
-                    # If neighbour r,c is not in open list:
+
                     if not in_open_list[r, c]:
-                        # mark r,c as 'in_open_list'
                         in_open_list[r, c] = True
-                        # add r,c to open list
-                        heapq.heappush(open_list, (f_values[r, c], [r, c]))
-        
+                        heapq.heappush(open_list, (f, [r, c]))
+                    else:
+                        heapq.heappush(open_list, (f,[r,c]))
+        #
+        # END OF WHILE
+        #
         path = []
         while parent_nodes[goal_r, goal_c][0] != -1:
             path.insert(0, [goal_r, goal_c])
