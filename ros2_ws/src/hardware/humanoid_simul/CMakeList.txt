@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.8)
+project(humanoid_simul)
+
+# Busca ROS2 ament_cmake
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+
+# MuJoCo paths
+set(MUJOCO_INCLUDE_DIR $ENV{MUJOCO_PATH}/include)
+set(MUJOCO_LIBRARY $ENV{MUJOCO_PATH}/bin/libmujoco210.so)
+
+include_directories(
+    include
+    ${MUJOCO_INCLUDE_DIR}
+)
+
+# Ejecutable
+add_executable(basic_mujoco src/basic_mujoco.cpp)
+ament_target_dependencies(basic_mujoco rclcpp)
+target_link_libraries(basic_mujoco ${MUJOCO_LIBRARY})
+
+# Instala ejecutable
+install(TARGETS basic_mujoco
+  DESTINATION lib/${PROJECT_NAME})
+
+ament_package()
