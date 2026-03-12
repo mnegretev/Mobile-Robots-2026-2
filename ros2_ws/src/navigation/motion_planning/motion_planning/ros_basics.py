@@ -13,7 +13,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist, PointStamped
 from sensor_msgs.msg import LaserScan
 
-FULL_NAME = "GUSTAVO VAZQUEZ MARTINEZ"
+FULL_NAME = "FULL NAME"
 
 class RosBasicsNode(Node):
     def __init__(self):
@@ -34,16 +34,7 @@ class RosBasicsNode(Node):
         # Publish the Twist message using the already declared publisher 'pub_cmd_vel'.
         # Publish a point stamped with fixed coordinates (1,0)
         #
-        # Definición de la velocidad basada en obstáculos
-        msg_twist = Twist()
-        msg_twist.linear.x = 0.0 if self.obstacle_detected else 0.3
-        self.pub_cmd_vel.publish(msg_twist)
-
-        # Publicación de un punto de referencia en el mapa
-        msg_point = PointStamped()
-        msg_point.header.frame_id = "map"
-        msg_point.point.x = 1.0
-        self.pub_point.publish(msg_point)
+        
         return
 
     def callback_scan(self, msg):
