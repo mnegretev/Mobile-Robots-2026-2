@@ -13,7 +13,7 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Irving Rodriguez Ruiz"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
@@ -29,7 +29,16 @@ class PathSmoothingNode(Node):
         P = numpy.copy(Q)
         tol     = 0.00001                   
         nabla   = numpy.full(Q.shape, float("inf"))
-        epsilon = 0.1                       
+        epsilon = 0.1    
+        
+        # Para no mover inicio/fin:
+        nabla[0] = 0
+        nabla[-1] = 0
+        while numpy.linalg.norm(nabla) > tol and max_steps > 0:
+            for i in range(1, len(Q)-1):
+                nabla[i] = w1 * (2*P[i] - P[i-1] - P[i+1]) + w2 * (P[i] - Q[i])
+            P = P - epsilon * nabla
+            max_steps -= 1 
         
         return P
 
@@ -59,8 +68,8 @@ class PathSmoothingNode(Node):
     def __init__(self):
         super().__init__("path_smoothing_node")
         self.get_logger().info("INITIALIZING PATH SMOOTHING NODE - " + NAME)
-        self.declare_parameter('w1', 0.9)
-        self.declare_parameter('w2', 0.1)
+        self.declare_parameter('w1', 0.5)
+        self.declare_parameter('w2', 0.3)
         self.declare_parameter('steps', 10000)
         self.srv_smooth_path = self.create_service(ProcessPath, '/path_planning/smooth_path', self.callback_smooth_path)
         self.pub_smooth_path = self.create_publisher(Path, '/path_planning/smoothed_path', 10)
