@@ -1,6 +1,6 @@
 #
 # MOBILE ROBOTS - FI-UNAM, 2026-2
-# PATH FOLLOWING BY PURE PURSUIT
+# PATH FOLLOWING BY STANLEY CONTROLLER
 #
 # Instructions:
 # Write the code necessary to move the robot along a given path.
@@ -32,66 +32,79 @@ SM_SMOOTH_PATH = 30
 SM_FOLLOWING_PATH = 40
 SM_SAVE_DATA = 50
 
-class PurePursuitNode(Node):
-    def calculate_control(self, robot_x, robot_y, robot_a, goal_x, goal_y, alpha, beta, v_max, w_max):
+class StanleyNode(Node):
+    def calculate_control(self, robot_x, robot_y, robot_a, x_i, y_i, theta_i, Kd, Ka, v_max, w_max):
         v,w = 0,0
+        Kv = 5.0
         #
         # TODO:
-        # Implement the control law given by:
+        # Implement the Stanley controller given by:
         #
-        error_a = math.atan2(goal_y - robot_y, goal_x - robot_x) - robot_a
-        error_a = (error_a + math.pi)%(2*math.pi) - math.pi
-        v = v_max*math.exp(-error_a*error_a/alpha)
-        w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
-        #
-        # where error_a is the angle error
-        # and v_max, w_max, alpha and beta, are tunning constants.
-        # Remember to keep error angle in the interval (-pi,pi]
+        # theta_e = error angle between theta_i and the vector from point (xi,yi) to robot position
+        theta_e = (theta_i - math.atan2(robot_y-y_i, robot_x-x_i) + math.pi)%(math.pi*2) - math.pi
+        # et = signed distance from point (xi,yi) to robot position
+        et = math.sqrt((robot_x - x_i)**2 + (robot_y - y_i)**2)*numpy.sign(theta_e)       
+        # alpha = (theta_ i - robot_a ) remeber to keep angle in (-pi,pi]
+        alpha = (theta_i - robot_a + math.pi)%(math.pi*2) - math.pi
+        # v = v_max*e^(-Kv*(et^2+alpha^2))
+        v = v_max*math.exp(-Kv*(et**2 + alpha**2))
+        # w = Ka*alpha + Kd*et
+        w = Ka*alpha + Kd*et
+        w = max(-w_max, min(w_max, w))
+        # Remember to keep w in (-w_max,w_max)
         # Return the tuple [v,w]
         #
-                
+        
         return [v,w]
 
-    def pure_pursuit(self, path, alpha, beta, v_max, w_max, tol):
+    def get_nearest_point_and_angle(self, path, robot_x, robot_y):
+        xi, yi = 0,0
+        Pr = numpy.asarray([robot_x, robot_y])
+        distances = [numpy.linalg.norm(Pr - p) for p in path]
+        i = numpy.argmin(distances)
+        i_next = min(i+1, len(path)-1)
+        i_prev = max(i-1, 0)
+        Pi = path[i]
+        Pn = path[i_next]
+        Pp = path[i_prev]
+        theta_i = math.atan2(Pn[1] - Pp[1], Pn[0] - Pp[0])
+        return Pi[0], Pi[1], theta_i
+
+    def stanley_path_following(self, path, Kd, Ka, v_max, w_max, tol):
         #
         # TODO:
         # Use the calculate_control function to move the robot along the path.
         # Path is given as a sequence of points [[x0,y0], [x1,y1], ..., [xn,yn]]
         # You can use the following steps to perform the path tracking by pure pursuit:
         #
-        # Set goal point as the first point of the path
         # Get robot position with Pr, robot_a = get_robot_pose()
-        #
         # WHILE distance to last point > tol and rclpy.ok():
+        #     Get nearest point (xi,yi) and angle theta_i by calling the corresponding function
         #     Calculate control signals v and w
         #     Publish the control signals with the function publish_and_save_data()
         #     Get robot position
-        #     If dist to goal point is less than 0.3 (you can change this constant)
-        #         Change goal point to the next point in the path
         #
-        idx = 0
-        Pg = path[idx]
         Pr, robot_a = self.get_robot_pose()
-        while numpy.linalg.norm(path[-1] - Pr) > tol and rclpy.ok():
-            v,w = self.calculate_control(Pr[0],Pr[1],robot_a,Pg[0],Pg[1],alpha,beta,v_max,w_max)
-            self.publish_and_save_data(Pr[0],Pr[1], robot_a, Pg[0],Pg[1], v,w)
+        while numpy.linalg.norm(path[-1] - Pr)>tol and rclpy.ok():
+            xi, yi, theta_i = self.get_nearest_point_and_angle(path, Pr[0], Pr[1])
+            v,w = self.calculate_control(Pr[0],Pr[1], robot_a,xi,yi,theta_i,Kd,Ka,v_max,w_max)
+            self.publish_and_save_data(Pr[0], Pr[1], robot_a, v,w)
             Pr, robot_a = self.get_robot_pose()
-            if numpy.linalg.norm(Pg - Pr) < 0.3:
-                idx = min(len(path)-1, idx + 1)
-                Pg = path[idx]
         #
         # END OF WHILE
         #
         return
 
-    def publish_and_save_data(self, robot_x, robot_y, robot_a, goal_x, goal_y, v,w):
-        self.nav_data.append([robot_x, robot_y, robot_a, goal_x, goal_y, v, w])
+    def publish_and_save_data(self, robot_x, robot_y, robot_a, v,w):
+        self.nav_data.append([robot_x, robot_y, robot_a, v, w])
         msg = Twist()
         msg.linear.x = v
         msg.angular.z = w
         self.pub_cmd_vel.publish(msg)
-        rclpy.spin_once(self)
-        self.get_clock().sleep_for(Duration(seconds=0.005))
+        for i in range(10):
+            Pr, theta_r = self.get_robot_pose()
+            rclpy.spin_once(self)
+            self.get_clock().sleep_for(Duration(seconds=0.005))
 
     def get_robot_pose(self):
         try:
@@ -114,8 +127,8 @@ class PurePursuitNode(Node):
         self.new_goal_pose = True
 
     def __init__(self):
-        super().__init__("pure_pursuit_node")
-        self.get_logger().info("INITIALIZING PATH FOLLOWER BY PURE PURSUIT NODE ...")
+        super().__init__("stanley_node")
+        self.get_logger().info("INITIALIZING PATH FOLLOWER BY STANLEY NODE ...")
         self.nav_data = []
         self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
         self.robot_pose = numpy.asarray([0.0,0.0])
@@ -125,10 +138,10 @@ class PurePursuitNode(Node):
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
         self.declare_parameter('v_max', 0.5)
-        self.declare_parameter('w_max', 0.5)
-        self.declare_parameter('alpha', 1.0)
-        self.declare_parameter('beta',  1.0)
-        self.declare_parameter('tol',  0.3)
+        self.declare_parameter('w_max', 1.0)
+        self.declare_parameter('Kd', 1.0)
+        self.declare_parameter('Ka', 1.0)
+        self.declare_parameter('tol', 0.1)
         self.clt_plan_path = self.create_client(GetPlan, '/path_planning/plan_path')
         self.clt_smooth_path = self.create_client(ProcessPath, '/path_planning/smooth_path')
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 1)
@@ -201,12 +214,12 @@ class PurePursuitNode(Node):
             elif state == SM_FOLLOWING_PATH:
                 v_max = self.get_parameter('v_max').get_parameter_value().double_value
                 w_max = self.get_parameter('w_max').get_parameter_value().double_value
-                alpha = self.get_parameter('alpha').get_parameter_value().double_value
-                beta  = self.get_parameter('beta').get_parameter_value().double_value
+                Kd    = self.get_parameter('Kd').get_parameter_value().double_value
+                Ka    = self.get_parameter('Ka').get_parameter_value().double_value
                 tol   = self.get_parameter('tol').get_parameter_value().double_value
-                self.get_logger().info("Following path with [v_max, w_max, alpha, beta, tol]="+str([v_max, w_max, alpha, beta, tol]))
+                self.get_logger().info("Following path with [v_max, w_max, Kd, Ka, tol]="+str([v_max, w_max, Kd, Ka, tol]))
                 path_points = [numpy.asarray([p.pose.position.x, p.pose.position.y]) for p in path.poses]
-                self.pure_pursuit(path_points, alpha, beta, v_max, w_max, tol)
+                self.stanley_path_following(path_points, Kd, Ka, v_max, w_max, tol)
                 self.pub_cmd_vel.publish(Twist())
                 self.pub_goal_reached.publish(Bool(data=True))
                 self.get_logger().info("Global goal point reached")
@@ -215,7 +228,7 @@ class PurePursuitNode(Node):
             elif state == SM_SAVE_DATA:
                 s = ""
                 for d in self.nav_data:
-                    s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) +","+ str(d[5]) +","+ str(d[6]) + "\n"
+                    s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) + "\n"
                 f = open(self.data_file, "w")
                 f.write(s)
                 f.close()
@@ -227,9 +240,9 @@ class PurePursuitNode(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    pure_pursuit_node = PurePursuitNode()
-    pure_pursuit_node.spin()
-    pure_pursuit_node.destroy_node()
+    stanley_node = StanleyNode()
+    stanley_node.spin()
+    stanley_node.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
