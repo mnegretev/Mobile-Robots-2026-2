@@ -25,7 +25,9 @@ setup(
     entry_points={
         'console_scripts': [
             'pure_pursuit = path_follower.pure_pursuit:main',
-            'pure_pursuit_solved = path_follower.pure_pursuit_solved:main'
+            'pure_pursuit_solved = path_follower.pure_pursuit_solved:main',
+            'stanley = path_follower.stanley:main',
+            'stanley_solved = path_follower.stanley_solved:main'
         ],
     },
 )
