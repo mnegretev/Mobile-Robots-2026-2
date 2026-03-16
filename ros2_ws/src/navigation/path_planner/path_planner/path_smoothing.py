@@ -13,19 +13,43 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Jose Augusto García Mendoza"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
         #
         # TODO:
-        # Write the code to smooth the path Q, using the gradient descend algorithm,
-        # and return a new smoothed path P.
-        # Path is composed of a set of points [x,y] as follows:
-        # [[x0,y0], [x1,y1], ..., [xn,ym]].
-        # The smoothed path must have the same shape.
-        # Return the smoothed path.
-        #
+        P = numpy.copy(Q).astype(float)
+        tol     = 0.00001
+        nabla   = numpy.full(Q.shape, float("inf"))
+        epsilon = 0.1
+
+        n = Q.shape[0]
+        if n < 3:
+            return P  # no hay puntos internos que suavizar
+
+        steps = 0
+        # Mientras el gradiente sea "grande" y no excedamos iteraciones
+        while steps < max_steps:
+            # ∇J_0 = 0 y ∇J_{n-1} = 0 (extremos fijos)
+            nabla[0, :]     = 0.0
+            nabla[n - 1, :] = 0.0
+
+            # Calcula gradiente solo para puntos internos
+            for i in range(1, n - 1):
+                nabla[i, :] = (w1 * (2.0 * P[i, :] - P[i - 1, :] - P[i + 1, :])
+                               + w2 * (P[i, :] - Q[i, :]))
+
+            # Criterio de paro: max ||∇J(pi)|| <= tol
+            max_norm = numpy.max(numpy.linalg.norm(nabla[1:n-1, :], axis=1))
+            if max_norm <= tol:
+                break
+
+            # Actualiza P: P <- P - epsilon * ∇J (solo internos)
+            P[1:n-1, :] = P[1:n-1, :] - epsilon * nabla[1:n-1, :]
+            steps += 1
+
+        return P
         P = numpy.copy(Q)
         tol     = 0.00001                   
         nabla   = numpy.full(Q.shape, float("inf"))
