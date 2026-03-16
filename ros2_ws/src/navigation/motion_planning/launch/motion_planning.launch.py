@@ -111,5 +111,5 @@ def generate_launch_description():
         a_star_node,
         path_smoothing_node,
         #pure_pursuit_node
-        #stanley_node
+        stanley_node
     ])
