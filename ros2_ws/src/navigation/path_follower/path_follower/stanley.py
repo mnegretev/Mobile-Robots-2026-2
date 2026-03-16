@@ -88,15 +88,15 @@ class StanleyNode(Node):
         while numpy.linalg.norm(path[-1] - Pr)>tol and rclpy.ok():
             xi, yi, theta_i = self.get_nearest_point_and_angle(path, Pr[0], Pr[1])
             v,w = self.calculate_control(Pr[0],Pr[1], robot_a,xi,yi,theta_i,Kd,Ka,v_max,w_max)
-            self.publish_and_save_data(Pr[0], Pr[1], robot_a, v,w)
+            self.publish_and_save_data(Pr[0], Pr[1], robot_a,xi,yi, v,w)
             Pr, robot_a = self.get_robot_pose()
         #
         # END OF WHILE
         #
         return
 
-    def publish_and_save_data(self, robot_x, robot_y, robot_a, v,w):
-        self.nav_data.append([robot_x, robot_y, robot_a, v, w])
+    def publish_and_save_data(self, robot_x, robot_y, robot_a,x_i,y_i,v,w):
+        self.nav_data.append([robot_x, robot_y, robot_a,x_i,y_i, v, w])
         msg = Twist()
         msg.linear.x = v
         msg.angular.z = w
@@ -130,7 +130,7 @@ class StanleyNode(Node):
         super().__init__("stanley_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY STANLEY NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = get_package_share_directory('path_follower') + "/data_run6.txt" 
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False

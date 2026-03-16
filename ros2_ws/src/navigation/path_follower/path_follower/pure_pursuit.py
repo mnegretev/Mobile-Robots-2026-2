@@ -117,7 +117,7 @@ class PurePursuitNode(Node):
         super().__init__("pure_pursuit_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY PURE PURSUIT NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = get_package_share_directory('path_follower') + "/data_run3.txt" 
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
