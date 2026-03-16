@@ -22,8 +22,9 @@ from tf2_ros.transform_listener import TransformListener
 from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
+import os
 
-NAME = "FULL NAME"
+NAME = "DOMÍNGUEZ PALACIOS JESÚS ALEJANDRO"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -54,7 +55,6 @@ class StanleyNode(Node):
         # Remember to keep w in (-w_max,w_max)
         # Return the tuple [v,w]
         #
-        
         return [v,w]
 
     def get_nearest_point_and_angle(self, path, robot_x, robot_y):
@@ -88,15 +88,15 @@ class StanleyNode(Node):
         while numpy.linalg.norm(path[-1] - Pr)>tol and rclpy.ok():
             xi, yi, theta_i = self.get_nearest_point_and_angle(path, Pr[0], Pr[1])
             v,w = self.calculate_control(Pr[0],Pr[1], robot_a,xi,yi,theta_i,Kd,Ka,v_max,w_max)
-            self.publish_and_save_data(Pr[0], Pr[1], robot_a, v,w)
+            self.publish_and_save_data(Pr[0], Pr[1], robot_a, xi, yi, v, w)
             Pr, robot_a = self.get_robot_pose()
         #
         # END OF WHILE
         #
         return
 
-    def publish_and_save_data(self, robot_x, robot_y, robot_a, v,w):
-        self.nav_data.append([robot_x, robot_y, robot_a, v, w])
+    def publish_and_save_data(self, robot_x, robot_y, robot_a, goal_x, goal_y, v, w):
+        self.nav_data.append([robot_x, robot_y, robot_a, goal_x, goal_y, v, w])
         msg = Twist()
         msg.linear.x = v
         msg.angular.z = w
@@ -130,7 +130,7 @@ class StanleyNode(Node):
         super().__init__("stanley_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY STANLEY NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = os.path.expanduser("~/Mobile-Robots-2026-2/ros2_ws/install/path_follower/share/path_follower/data.txt")
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
@@ -228,7 +228,7 @@ class StanleyNode(Node):
             elif state == SM_SAVE_DATA:
                 s = ""
                 for d in self.nav_data:
-                    s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) + "\n"
+                    s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) +","+ str(d[5]) +","+ str(d[6]) + "\n"
                 f = open(self.data_file, "w")
                 f.write(s)
                 f.close()
@@ -247,4 +247,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-

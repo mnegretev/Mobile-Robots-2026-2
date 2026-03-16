@@ -22,8 +22,9 @@ from tf2_ros.transform_listener import TransformListener
 from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
+import os
 
-NAME = "FULL NAME"
+NAME = "DOMÍNGUEZ PALACIOS JESÚS ALEJANDRO"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -117,7 +118,7 @@ class PurePursuitNode(Node):
         super().__init__("pure_pursuit_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY PURE PURSUIT NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = os.path.expanduser("~/Mobile-Robots-2026-2/ros2_ws/install/path_follower/share/path_follower/data.txt")
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
@@ -234,4 +235,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-
