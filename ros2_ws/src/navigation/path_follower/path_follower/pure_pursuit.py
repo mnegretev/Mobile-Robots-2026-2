@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Itzel Guadalupe Campos Martinez"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
