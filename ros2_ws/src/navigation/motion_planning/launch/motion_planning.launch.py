@@ -110,6 +110,6 @@ def generate_launch_description():
         cost_map_node,
         a_star_node,
         path_smoothing_node,
-        #pure_pursuit_node
+        pure_pursuit_node,
         #stanley_node
     ])
