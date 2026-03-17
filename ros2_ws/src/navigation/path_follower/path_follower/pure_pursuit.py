@@ -22,8 +22,9 @@ from tf2_ros.transform_listener import TransformListener
 from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
+import os
 
-NAME = "FULL NAME"
+NAME = "JESUS ALEXIS PEREZ LEON"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -117,7 +118,8 @@ class PurePursuitNode(Node):
         super().__init__("pure_pursuit_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY PURE PURSUIT NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        #self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = os.path.join(os.path.expanduser("~"), "nav_data.txt")
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
@@ -216,10 +218,17 @@ class PurePursuitNode(Node):
                 s = ""
                 for d in self.nav_data:
                     s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) +","+ str(d[5]) +","+ str(d[6]) + "\n"
-                f = open(self.data_file, "w")
-                f.write(s)
-                f.close()
-                state = SM_INIT
+                #f = open(self.data_file, "w")
+                #f.write(s)
+                #f.close()
+                    try:
+                        with open(self.data_file, "w") as f:
+                            f.write(s)
+                        self.get_logger().info(f"Data saved to {self.data_file} ({len(self.nav_data)} records)")
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to save data: {str(e)}")
+                    
+                    state = SM_INIT
                 
             rclpy.spin_once(self)
             self.get_clock().sleep_for(Duration(seconds=0.005))
