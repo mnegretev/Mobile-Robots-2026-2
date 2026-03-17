@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
-NAME = "FULL NAME"
+NAME = "CARMEN GARCIA MORALES"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -47,7 +47,11 @@ class PurePursuitNode(Node):
         # Remember to keep error angle in the interval (-pi,pi]
         # Return the tuple [v,w]
         #
-                
+        error_a = math.atan2(goal_y - robot_y, goal_x - robot_x) - robot_a
+        error_a = (error_a + math.pi)%(2*math.pi) - math.pi
+        v = v_max*math.exp(-error_a*error_a/alpha)
+        w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
+             
         return [v,w]
 
     def pure_pursuit(self, path, alpha, beta, v_max, w_max, tol):
@@ -67,7 +71,17 @@ class PurePursuitNode(Node):
         #     If dist to goal point is less than 0.3 (you can change this constant)
         #         Change goal point to the next point in the path
         #
-        
+        idx = 0
+        Pg = path[idx]
+        Pr, robot_a = self.get_robot_pose()
+        while numpy.linalg.norm(path[-1] - Pr) > tol and rclpy.ok():
+            v,w = self.calculate_control(Pr[0],Pr[1],robot_a,Pg[0],Pg[1],alpha,beta,v_max,w_max)
+            self.publish_and_save_data(Pr[0],Pr[1], robot_a, Pg[0],Pg[1], v,w)
+            Pr, robot_a = self.get_robot_pose()
+            if numpy.linalg.norm(Pg - Pr) < 0.3:
+                idx = min(len(path)-1, idx + 1)
+                Pg = path[idx]
+
         #
         # END OF WHILE
         #
