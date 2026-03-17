@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Santiago Cruz Plaza"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -43,7 +43,7 @@ class StanleyNode(Node):
         # theta_e = error angle between theta_i and the vector from point (xi,yi) to robot position
         theta_e = (theta_i - math.atan2(robot_y-y_i, robot_x-x_i) + math.pi)%(math.pi*2) - math.pi
         # et = signed distance from point (xi,yi) to robot position
-        et = math.sqrt((robot_x - x_i)**2 + (robot_y - y_i)**2)*numpy.sign(theta_e)       
+        et = math.sqrt((robot_x - x_i)**2 + (robot_y - y_i)**2)*numpy.sign(theta_e)
         # alpha = (theta_ i - robot_a ) remeber to keep angle in (-pi,pi]
         alpha = (theta_i - robot_a + math.pi)%(math.pi*2) - math.pi
         # v = v_max*e^(-Kv*(et^2+alpha^2))
@@ -54,7 +54,7 @@ class StanleyNode(Node):
         # Remember to keep w in (-w_max,w_max)
         # Return the tuple [v,w]
         #
-        
+
         return [v,w]
 
     def get_nearest_point_and_angle(self, path, robot_x, robot_y):
@@ -130,7 +130,7 @@ class StanleyNode(Node):
         super().__init__("stanley_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY STANLEY NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = get_package_share_directory('path_follower') + "/data.txt"
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
@@ -233,7 +233,7 @@ class StanleyNode(Node):
                 f.write(s)
                 f.close()
                 state = SM_INIT
-                
+
             rclpy.spin_once(self)
             self.get_clock().sleep_for(Duration(seconds=0.005))
 
@@ -247,4 +247,3 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
-

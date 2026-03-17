@@ -86,20 +86,20 @@ def generate_launch_description():
         executable="pure_pursuit",
         name='pure_pursuit',
         output='screen',
-        parameters=[{'alpha':0.1}, {'beta':0.1}]
+        parameters=[{'alpha':0.3}, {'beta':0.4}]
     )
     stanley_node = Node(
         package="path_follower",
         executable="stanley",
         name='stanley',
         output='screen',
-        parameters=[{'Kd':1.0}, {'Ka':1.0}]
+        parameters=[{'Kd':0.9}, {'Ka':0.8}]
     )
-        
+
     return LaunchDescription([
         lira_gui_node,
         rviz2_node,
-        map_server_node,        
+        map_server_node,
         amcl_node,
         TimerAction(
             period=5.0,
@@ -110,6 +110,6 @@ def generate_launch_description():
         cost_map_node,
         a_star_node,
         path_smoothing_node,
-        #pure_pursuit_node
+        pure_pursuit_node
         #stanley_node
     ])
