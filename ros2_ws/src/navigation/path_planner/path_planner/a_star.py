@@ -106,21 +106,21 @@ class AStarNode(Node):
         return path
 
     def get_maps(self):
-        self.get_logger().info("Waiting for inflated map service...")
+        #self.get_logger().info("Waiting for inflated map service...")
         while not self.clt_inflated_map.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for inflated map service...')
-        self.get_logger().info("Inflated map service is now available...")
-        self.get_logger().info("Waiting for cost map service...")
+        # self.get_logger().info("Inflated map service is now available...")
+        # self.get_logger().info("Waiting for cost map service...")
         while not self.clt_cost_map.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Waiting for cost map service...')
-        self.get_logger().info("Cost map service is now available...")
+        # self.get_logger().info("Cost map service is now available...")
 
-        self.get_logger().info("Trying to get inflated map...")
+        # self.get_logger().info("Trying to get inflated map...")
         future = self.clt_inflated_map.call_async(GetMap.Request())
         rclpy.spin_until_future_complete(self, future)
         inflated_map = future.result().map
-        self.get_logger().info("Got inflated map.")
-        self.get_logger().info("Trying to get cost map...")
+        # self.get_logger().info("Got inflated map.")
+        # self.get_logger().info("Trying to get cost map...")
         future = self.clt_cost_map.call_async(GetMap.Request())
         rclpy.spin_until_future_complete(self, future)
         cost_map= future.result().map
@@ -166,7 +166,7 @@ class AStarNode(Node):
             
     def __init__(self):
         super().__init__("a_star_node")
-        self.get_logger().info("INITIALIZING A STAR NODE - " + NAME)
+        # self.get_logger().info("INITIALIZING A STAR NODE - " + NAME)
         self.clt_inflated_map = self.create_client(GetMap, '/get_inflated_map')
         self.clt_cost_map     = self.create_client(GetMap, '/get_cost_map')
         

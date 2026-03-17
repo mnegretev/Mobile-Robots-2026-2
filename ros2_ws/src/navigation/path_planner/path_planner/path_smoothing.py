@@ -13,7 +13,7 @@ from geometry_msgs.msg import Pose, PoseStamped, Point
 from navig_msgs.srv import ProcessPath
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Diaz Rivera Javier Enrique"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
@@ -66,8 +66,8 @@ class PathSmoothingNode(Node):
     def __init__(self):
         super().__init__("path_smoothing_node")
         self.get_logger().info("INITIALIZING PATH SMOOTHING NODE - " + NAME)
-        self.declare_parameter('w1', 0.9)
-        self.declare_parameter('w2', 0.1)
+        self.declare_parameter('w1', 2.0)
+        self.declare_parameter('w2', 0.12)
         self.declare_parameter('steps', 10000)
         self.srv_smooth_path = self.create_service(ProcessPath, '/path_planning/smooth_path', self.callback_smooth_path)
         self.pub_smooth_path = self.create_publisher(Path, '/path_planning/smoothed_path', 10)
