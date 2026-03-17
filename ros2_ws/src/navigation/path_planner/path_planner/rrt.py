@@ -106,6 +106,7 @@ class RRTNode(Node):
         while goal_node is not None:
             path.insert(0, [goal_node.x, goal_node.y])
             goal_node = goal_node.parent
+        print("Steps = " + str(len(path)))
         return tree, path
 
     def get_tree_marker(self,tree):
@@ -145,7 +146,7 @@ class RRTNode(Node):
         [gx, gy] = [req.goal .pose.position.x, req.goal .pose.position.y]
         epsilon  = self.get_parameter('epsilon').get_parameter_value().double_value
         max_attempts = self.get_parameter('max_n').get_parameter_value().integer_value
-        str_data = str([sx,sy]) + " to " + str([gx,gy]) +" with e=" + str(epsilon) +  " and " + str(max_attempts) + " attempts."
+        str_data = str([sx,sy]) + " to " + str([gx,gy]) +" with e=" + str(epsilon) + " and " + str(max_attempts) + " attempts."
         self.get_logger().info("Planning by RRT from " + str_data)
         
         start_time = self.get_clock().now()
