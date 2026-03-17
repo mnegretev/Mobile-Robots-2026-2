@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Emmanuel Domínguez Osio"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -68,7 +68,7 @@ class StanleyNode(Node):
         Pn = path[i_next]
         Pp = path[i_prev]
         theta_i = math.atan2(Pn[1] - Pp[1], Pn[0] - Pp[0])
-        return Pi[0], Pi[1], theta_i
+        return [Pi[0], Pi[1], theta_i]
 
     def stanley_path_following(self, path, Kd, Ka, v_max, w_max, tol):
         #
@@ -87,24 +87,22 @@ class StanleyNode(Node):
         Pr, robot_a = self.get_robot_pose()
         while numpy.linalg.norm(path[-1] - Pr)>tol and rclpy.ok():
             xi, yi, theta_i = self.get_nearest_point_and_angle(path, Pr[0], Pr[1])
-            v,w = self.calculate_control(Pr[0],Pr[1], robot_a,xi,yi,theta_i,Kd,Ka,v_max,w_max)
-            self.publish_and_save_data(Pr[0], Pr[1], robot_a, v,w)
+            v,w = self.calculate_control(Pr[0],Pr[1],robot_a,xi,yi,theta_i,Kd,Ka,v_max,w_max)
+            self.publish_and_save_data(Pr[0],Pr[1],robot_a,xi,yi,v,w)
             Pr, robot_a = self.get_robot_pose()
         #
         # END OF WHILE
         #
         return
 
-    def publish_and_save_data(self, robot_x, robot_y, robot_a, v,w):
-        self.nav_data.append([robot_x, robot_y, robot_a, v, w])
+    def publish_and_save_data(self,robot_x,robot_y,robot_a,goal_x,goal_y,v,w):
+        self.nav_data.append([robot_x,robot_y,robot_a,goal_x,goal_y,v,w])
         msg = Twist()
         msg.linear.x = v
         msg.angular.z = w
         self.pub_cmd_vel.publish(msg)
-        for i in range(10):
-            Pr, theta_r = self.get_robot_pose()
-            rclpy.spin_once(self)
-            self.get_clock().sleep_for(Duration(seconds=0.005))
+        rclpy.spin_once(self)
+        self.get_clock().sleep_for(Duration(seconds=0.005))
 
     def get_robot_pose(self):
         try:

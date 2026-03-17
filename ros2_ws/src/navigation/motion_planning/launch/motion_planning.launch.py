@@ -79,14 +79,14 @@ def generate_launch_description():
         executable="path_smoothing",
         name='path_smoothing',
         output='screen',
-        parameters=[{'w1':0.95}, {'w2':0.05}]
+        parameters=[{'w1':0.98}, {'w2':0.02}]
     )
     pure_pursuit_node = Node(
         package="path_follower",
         executable="pure_pursuit",
         name='pure_pursuit',
         output='screen',
-        parameters=[{'alpha':0.1}, {'beta':0.1}]
+        parameters=[{'alpha':0.2}, {'beta':0.1}]
     )
     stanley_node = Node(
         package="path_follower",
@@ -110,6 +110,6 @@ def generate_launch_description():
         cost_map_node,
         a_star_node,
         path_smoothing_node,
-        #pure_pursuit_node
+        pure_pursuit_node,
         #stanley_node
     ])
