@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Gonzalez Gomez Alejandro"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -49,7 +49,7 @@ class PurePursuitNode(Node):
         # Remember to keep error angle in the interval (-pi,pi]
         # Return the tuple [v,w]
         #
-                
+        
         return [v,w]
 
     def pure_pursuit(self, path, alpha, beta, v_max, w_max, tol):
