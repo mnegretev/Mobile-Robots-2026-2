@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Irving Rodriguez Ruiz"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -88,15 +88,18 @@ class StanleyNode(Node):
         while numpy.linalg.norm(path[-1] - Pr)>tol and rclpy.ok():
             xi, yi, theta_i = self.get_nearest_point_and_angle(path, Pr[0], Pr[1])
             v,w = self.calculate_control(Pr[0],Pr[1], robot_a,xi,yi,theta_i,Kd,Ka,v_max,w_max)
-            self.publish_and_save_data(Pr[0], Pr[1], robot_a, v,w)
+            #self.publish_and_save_data(Pr[0], Pr[1], robot_a, v,w)
+            self.publish_and_save_data(Pr[0], Pr[1], robot_a, xi, yi, theta_i, v, w)
             Pr, robot_a = self.get_robot_pose()
         #
         # END OF WHILE
         #
         return
 
-    def publish_and_save_data(self, robot_x, robot_y, robot_a, v,w):
-        self.nav_data.append([robot_x, robot_y, robot_a, v, w])
+    #def publish_and_save_data(self, robot_x, robot_y, robot_a, v,w):
+    #    self.nav_data.append([robot_x, robot_y, robot_a, v, w])
+    def publish_and_save_data(self, robot_x, robot_y, robot_a, x_i, y_i, theta_i, v, w):
+        self.nav_data.append([robot_x, robot_y, robot_a, x_i, y_i, theta_i, v, w])    
         msg = Twist()
         msg.linear.x = v
         msg.angular.z = w
@@ -228,7 +231,8 @@ class StanleyNode(Node):
             elif state == SM_SAVE_DATA:
                 s = ""
                 for d in self.nav_data:
-                    s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) + "\n"
+                    #s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) + "\n"
+                    s += str(d[0]) + "," + str(d[1]) + "," + str(d[2]) + "," + str(d[3]) + "," + str(d[4]) + "," + str(d[5]) + "," + str(d[6]) + "," + str(d[7]) + "\n"
                 f = open(self.data_file, "w")
                 f.write(s)
                 f.close()
