@@ -22,8 +22,10 @@ from tf2_ros.transform_listener import TransformListener
 from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
+import os
+from ament_index_python.packages import get_package_share_directory
 
-NAME = "FULL NAME"
+NAME = "JESUS ALEXIS PEREZ LEON"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -130,7 +132,8 @@ class StanleyNode(Node):
         super().__init__("stanley_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY STANLEY NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        #self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = os.path.expanduser("~/stanley_nav_data.txt")
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
@@ -236,6 +239,8 @@ class StanleyNode(Node):
                 
             rclpy.spin_once(self)
             self.get_clock().sleep_for(Duration(seconds=0.005))
+
+            
 
 
 def main(args=None):
