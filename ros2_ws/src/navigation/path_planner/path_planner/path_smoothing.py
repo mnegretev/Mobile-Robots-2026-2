@@ -38,7 +38,7 @@ class PathSmoothingNode(Node):
                 nabla[i]=w1*(2*P[i] - P[i-1] - P[i+1]) + w2*(P[i] - Q[i])
             P=P-epsilon*nabla
             max_steps -= 1
-            
+
         return P
 
     def callback_smooth_path(self, request, response):
