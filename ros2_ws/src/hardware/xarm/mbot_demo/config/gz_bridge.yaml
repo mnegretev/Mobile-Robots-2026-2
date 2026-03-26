@@ -27,3 +27,9 @@
   ros_type_name: "sensor_msgs/msg/JointState"
   gz_type_name: "gz.msgs.Model"
   direction: "GZ_TO_ROS"
+
+- ros_topic_name: "/gazebo/justina_with_xarm/pose"
+  gz_topic_name: "/model/justina_with_xarm/pose"
+  ros_type_name: "geometry_msgs/msg/PoseArray"
+  gz_type_name: "gz.msgs.Pose_V"
+  direction: GZ_TO_ROS
