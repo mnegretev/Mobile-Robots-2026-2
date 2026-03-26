@@ -143,7 +143,17 @@ int main(int argc, const char** argv) {
 	//if (std::strlen(argv[1])>4 && !std::strcmp(argv[1]+std::strlen(argv[1])-4, ".mjb")) {
 	m = mj_loadModel(n.model_file.c_str(), 0);
     } else {
+	std::cout << "Intentando cargar modelo: " << n.model_file << std::endl;
+
 	m = mj_loadXML(n.model_file.c_str(), 0, error, 1000);
+
+	if(!m){
+    	    std::cout << "ERROR cargando XML: " << error << std::endl;
+    	    return -1;
+	}
+
+	std::cout << "Modelo cargado correctamente" << std::endl;
+
     }
     if (!m) {
 	mju_error("Load model error: %s", error);
@@ -153,7 +163,10 @@ int main(int argc, const char** argv) {
     
     // make data
     d = mj_makeData(m);
-    
+    if(!d){
+	std::cout << "Error: mj_makeData failed" << std::endl;
+	return -1;
+    }
     // init GLFW
     if (!glfwInit()) {
 	mju_error("Could not initialize GLFW");
@@ -181,7 +194,20 @@ int main(int argc, const char** argv) {
     glfwSetScrollCallback(window, scroll);
 
     // run main loop, target real-time simulation and 60 fps rendering
+    // run main loop, target real-time simulation and 60 fps rendering
+    std::cout << "Numero de actuadores: " << m->nu << std::endl;
+
     int actuator_id = mj_name2id(m, mjOBJ_ACTUATOR, "AAHead_yaw");
+
+    std::cout << "Actuator ID: " << actuator_id << std::endl;
+
+    if(actuator_id < 0){
+    std::cout << "ERROR: Actuador no encontrado" << std::endl;
+    }
+    else if(actuator_id >= m->nu){
+    std::cout << "ERROR: Actuador fuera de rango" << std::endl;
+    }
+
     mjv_moveCamera(m, mjMOUSE_ZOOM, 0, -0.05*5, &scn, &cam);
     while (!glfwWindowShouldClose(window) && rclcpp::ok()) {
 	// advance interactive simulation for 1/60 sec
@@ -210,7 +236,10 @@ int main(int argc, const char** argv) {
 	rclcpp::spin_some(n.get_node_base_interface());
 	rate.sleep();
 	//print_qpos(m,d);
-	d->ctrl[actuator_id] = sin(6.28*d->time);
+	if(d && actuator_id >= 0 && actuator_id < m->nu){
+        d->ctrl[actuator_id] = sin(6.28*d->time);
+        }
+
     }
     
     //free visualization storage
