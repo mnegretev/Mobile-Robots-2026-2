@@ -92,16 +92,15 @@ public:
         for (size_t i = 0; i < simulated_scans.size(); i++)
         {
             double delta = 0.0;
-            int M = 0; // count of valid (finite) beam pairs
+            int M = 0; 
 
-            // simulated scan has fewer rays; each ray i corresponds to
-            // ray (i * downsampling) in the real scan
+            
             for (size_t j = 0; j < simulated_scans[i].ranges.size(); j++)
             {
                 float d_simulated = simulated_scans[i].ranges[j];
                 float d_real = real_scan.ranges[j * downsampling];
 
-                // skip pairs where either reading is non-finite (inf or NaN)
+                
                 if (!std::isfinite(d_simulated) || !std::isfinite(d_real))
                     continue;
 
@@ -109,7 +108,7 @@ public:
                 M++;
             }
 
-            // avoid division by zero if no valid beams were found
+            
             if (M > 0)
                 delta /= static_cast<double>(M);
             else
@@ -118,7 +117,7 @@ public:
             similarities[i] = std::exp(-delta / sigma2);
         }
 
-        // --- Normalize so the vector sums to 1.0 (use as probability distribution) ---
+        
         double total = 0.0;
         for (double s : similarities)
             total += s;
@@ -127,7 +126,7 @@ public:
             for (double &s : similarities)
                 s /= total;
         else
-            // degenerate case: assign uniform distribution
+            
             for (double &s : similarities)
                 s = 1.0 / similarities.size();
 
@@ -149,15 +148,15 @@ public:
         for (size_t i = 1; i < probabilities.size(); i++)
             cumulative[i] = cumulative[i - 1] + probabilities[i];
 
-        // Draw a uniform random number in [0, 1)
+        
         double r = rnd.uniformReal(0.0, 1.0);
 
-        // Return the first index whose cumulative probability >= r
+        
         for (size_t i = 0; i < cumulative.size(); i++)
             if (r <= cumulative[i])
                 return static_cast<int>(i);
 
-        // Fallback: return last index (handles floating-point rounding when r ≈ 1.0)
+        
         return static_cast<int>(probabilities.size() - 1);
     }
 
@@ -169,10 +168,9 @@ public:
 
         for (size_t i = 0; i < resampled_particles.size(); i++)
         {
-            // Pick a particle index with probability proportional to its weight
+            
             int chosen = random_choice(probabilities);
 
-            // Copy the chosen particle and add Gaussian noise to each component
             resampled_particles[i].x = particles[chosen].x + rnd.gaussian(0, sigma2);
             resampled_particles[i].y = particles[chosen].y + rnd.gaussian(0, sigma2);
             resampled_particles[i].theta = particles[chosen].theta + rnd.gaussian(0, sigma2);
