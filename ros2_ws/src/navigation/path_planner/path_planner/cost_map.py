@@ -15,13 +15,24 @@ from nav_msgs.msg import OccupancyGrid
 from nav_msgs.srv import GetMap
 import numpy
 
-FULL_NAME = "FULL NAME"
+FULL_NAME = "JUAN GUERRA SANCHEZ"
 
 class CostMapNode(Node):
     def get_inflated_map(self, static_map, inflation_cells):
         self.get_logger().debug("Inflating map by " + str(inflation_cells) + " cells")
+        
         inflated = numpy.copy(static_map)
         [height, width] = static_map.shape
+        
+        for i in range(len(static_map)):
+            for j in range(len(static_map[0])):
+                if(static_map[i,j] == 100):
+                    for k1 in range(-inflation_cells , inflation_cells):
+                        for k2 in range(-inflation_cells , inflation_cells):
+                            r = min(height-1, max(0, i+k1))
+                            c = min(width-1, max(0, j+k2))
+                            inflated[r,c] = 100
+       
         #
         # TODO:
         # Write the code necessary to inflate the obstacles in the map a radius
@@ -36,6 +47,17 @@ class CostMapNode(Node):
         self.get_logger().debug("Getting cost map with " + str(cost_radius) + " cells")
         cost_map = numpy.copy(static_map)
         [height, width] = static_map.shape
+        
+        for i in range(height):
+            for j in range(width):
+                if static_map[i,j] > 50:
+                    for k1 in range(-cost_radius, cost_radius+1):
+                        for k2 in range(-cost_radius, cost_radius+1):
+                            if (i+k1) < 0 or (i+k1) >= height or (j+k2)<0 or (j+k2)>=width:
+                                continue
+                            cost = cost_radius - max(abs(k1),abs(k2))+1
+                            cost_map[i+k1,j+k2] = max(cost, cost_map[i+k1,j+k2])
+        
         #
         # TODO:
         # Write the code necessary to calculate a cost map for the given map.

@@ -20,7 +20,7 @@ import numpy
 import heapq
 import math
 
-NAME = "FULL NAME"
+NAME = "JUAN GUERRA SANCHEZ"
 
 class TreeNode:
     def __init__(self, x, y, parent=None):
@@ -81,9 +81,20 @@ class RRTNode(Node):
         return False
 
     def rrt(self, start_x, start_y, goal_x, goal_y, grid_map, epsilon, max_attempts):
+    
         tree = TreeNode(start_x, start_y, None)
         goal_node = TreeNode(goal_x, goal_y, None)
-    
+        
+        while goal_node.parent is None and max_attempts > 0: 
+             [x,y] = self.get_random_q(grid_map) 
+             nearest_node = self.get_nearest_node(tree, x, y) 
+             new_node = self.get_new_node(nearest_node, x, y, epsilon) 
+             if not self.check_collision(nearest_node, new_node, grid_map, epsilon): 
+                 nearest_node.children.append(new_node) 
+                 if not self.check_collision(new_node, goal_node, grid_map, epsilon): 
+                     new_node.children.append(goal_node) 
+                     goal_node.parent = new_node 
+             max_attempts -= 1
         #
         # TODO
         # Implement the RRT algorithm for path planning
@@ -93,9 +104,11 @@ class RRTNode(Node):
         #
         
         path = []
-        while goal_node is not None:
-            path.insert(0, [goal_node.x, goal_node.y])
-            goal_node = goal_node.parent
+        if goal_node.parent is not None:
+            node = goal_node
+            while goal_node is not None:
+                path.insert(0, [goal_node.x, goal_node.y])
+                goal_node = goal_node.parent
         return tree, path
 
     def get_tree_marker(self,tree):
