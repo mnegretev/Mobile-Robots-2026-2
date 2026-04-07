@@ -19,6 +19,8 @@
 #include "tf2_ros/transform_broadcaster.h"
 #include "tf2_ros/buffer.h"
 #include "ParticleFilter.h"
+#include <fstream>
+#include <string>
 
 class ParticleFilterNode : public rclcpp::Node
 {
@@ -48,6 +50,18 @@ public:
 	tf_buffer = std::make_unique<tf2_ros::Buffer>(this->get_clock());
 	tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 	tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
+
+	char filename[150];
+  snprintf(filename, sizeof(filename), "pf_test_N%d_s2s%.1f_s2m%.1f_s2r%.1f.csv", 
+           particles_N, sigma2_sensor, sigma2_movement, sigma2_resampling);
+           
+  csv_file.open(filename, std::ios::out | std::ios::app);
+  if (csv_file.is_open()) {
+      csv_file << "Iteracion,GT_X,GT_Y,GT_A,Est_X,Est_Y,Est_A\n";
+      RCLCPP_INFO(this->get_logger(), "Guardando datos en: %s", filename);
+  } else {
+      RCLCPP_ERROR(this->get_logger(), "No se pudo crear el archivo CSV");
+  }
     }
     
     void spin()
@@ -151,6 +165,14 @@ public:
 		RCLCPP_INFO(this->get_logger(), "Iteration: %d", (++iteration));
 		RCLCPP_INFO(this->get_logger(), "Estimated pose: x=%lf\ty=%lf\ta=%lf",estimated_x, estimated_y, estimated_a);
 		RCLCPP_INFO(this->get_logger(), "Groundtruth pose: x=%lf\ty=%lf\ta=%lf",this->groundtruth_x, this->groundtruth_y, this->groundtruth_a);
+
+		if (csv_file.is_open()) {
+        csv_file << iteration << "," 
+                 << this->groundtruth_x << "," << this->groundtruth_y << "," << this->groundtruth_a << ","
+                 << estimated_x << "," << estimated_y << "," << estimated_a << "\n";
+        csv_file.flush(); 
+    }
+		
 	    }
 	    tf_odom_to_map.header.stamp = this->get_clock()->now();
 	    this->tf_broadcaster->sendTransform(tf_odom_to_map);
@@ -177,6 +199,8 @@ private:
     double groundtruth_x;
     double groundtruth_y;
     double groundtruth_a;
+
+		std::ofstream csv_file;
 
     geometry_msgs::msg::TransformStamped last_tf_odom;
     sensor_msgs::msg::LaserScan real_scan;

@@ -7,7 +7,7 @@
  * Modify only the sections marked with the TODO comment. 
  */
 #include "particle_filter/ray_tracer.h"
-#define FULL_NAME "FULL NAME"
+#define FULL_NAME "MENDEZ HORTA ALEXANDER"
 
 class ParticleFilter
 {
@@ -25,7 +25,11 @@ public:
 	 * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
 	 * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
 	 */
-	
+			for(size_t i=0; i <particles.size(); i++){
+				particles[i].x = rnd.uniformReal(min_x, max_x);
+				particles[i].y = rnd.uniformReal(min_y,min_y);
+				particles[i].theta = rnd.uniformReal(min_a,max_a);
+			}
 	/*
 	 */
 	return particles;
@@ -44,7 +48,11 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
-	
+				for(size_t i=0; i < particles.size(); i++){
+					particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0, sigma2);
+					particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0, sigma2);
+					particles[i].theta += delta_t + rnd.gaussian(0, sigma2);
+				}
     }
 
     static std::vector<sensor_msgs::msg::LaserScan> simulate_particle_scans(
@@ -90,6 +98,53 @@ public:
 	 * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
 	 * ensure both simulated and real ranges are finite values. 
 	 */
+			//Comparacion de cada lectura simulada con la real. Se calcula la medida de similitud S
+			//basada en la desviación delta
+			double total_similarity = 0.0;
+			for (size_t i=0; i < simulated_scans.size(); i++){
+				double delta_sum = 0.0;
+				int valid_readings = 0;
+
+				for (size_t j=0; j < simulated_scans[i].ranges.size(); j++){
+					int real_idx = j * downsampling;
+					if (real_idx >= real_scan.ranges.size()) break;
+					float sim_r = simulated_scans[i].ranges[j];
+					float real_r = real_scan.ranges[real_idx];
+					//Se asegura que ninguna lectura sea NaN o Infinito
+					if (std::isfinite(sim_r) && std::isfinite(real_r)){
+						delta_sum += std::abs(real_r - sim_r);
+						valid_readings++;
+					}
+				}
+
+				//Calculando la similitus S = exp(-delta^2 / sigma^2)
+				if (valid_readings > 0){
+					double delta = delta_sum/valid_readings;
+					similarities[i] = std::exp(-(delta*delta)/sigma2);
+				}
+				else{
+					similarities[i]= 0.0;
+				}
+
+				total_similarity += similarities[i];
+			}
+			//Normalizacion
+			if(total_similarity > 0.0){
+				for (size_t i = 0; i < similarities.size(); i++)
+				{
+					similarities[i] /= total_similarity;
+				}
+			}else{
+				//si todas las similitudes son 0, entonces probabilidad uniforme
+				double uniform_prob = 1.0 / similarities.size();
+				for (size_t i = 0; i < similarities.size(); i++)
+				{
+					similarities[i] = uniform_prob;
+				}
+				
+			}
+				
+			
 	
 	
 	return similarities;
@@ -97,17 +152,28 @@ public:
     
     static int random_choice(std::vector<double>& probabilities)
     {
-	random_numbers::RandomNumberGenerator rnd;
-	/*
-	 * TODO:
-	 *
-	 * Write an algorithm to choice an integer in the range [0, N-1], with N, the length of 'probabilities'.
-	 * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
-	 * Return the chosen integer. 
-	 */
-	
-	
-	return -1;
+			random_numbers::RandomNumberGenerator rnd;
+			/*
+			* TODO:
+			*
+			* Write an algorithm to choice an integer in the range [0, N-1], with N, the length of 'probabilities'.
+			* Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
+			* Return the chosen integer. 
+			*/
+			double r = rnd.uniformReal(0.0,1.0);
+			double cumulative_prob = 0.0;
+
+			for (size_t i = 0; i < probabilities.size(); i++)
+			{
+				cumulative_prob += probabilities[i];
+				if (r <=cumulative_prob)
+				{
+					return i;
+				}
+				
+			}
+			
+			return probabilities.size() -1 ;
     }
 
     static std::vector<geometry_msgs::msg::Pose2D> resample_particles(
@@ -123,7 +189,16 @@ public:
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-	
+	for (size_t i = 0; i < particles.size(); ++i) {
+            int idx = random_choice(probabilities);
+            geometry_msgs::msg::Pose2D p = particles[idx];
+
+            p.x += rnd.gaussian(0.0, sigma2);
+            p.y += rnd.gaussian(0.0, sigma2);
+            p.theta += rnd.gaussian(0.0, sigma2);
+
+            resampled_particles[i] = p;
+        }
 	/*
 	 */
 	return resampled_particles;
