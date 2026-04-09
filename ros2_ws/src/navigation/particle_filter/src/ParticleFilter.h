@@ -7,7 +7,7 @@
  * Modify only the sections marked with the TODO comment. 
  */
 #include "particle_filter/ray_tracer.h"
-#define FULL_NAME "FULL NAME"
+#define FULL_NAME "Palomares Quintanar Marcelin"
 
 class ParticleFilter
 {
@@ -25,7 +25,11 @@ public:
 	 * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
 	 * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
 	 */
-	
+	for(size_t i=0; i < particles.size(); i++){
+		particles[i].x = rnd.uniformReal(min_x, max_x);
+		particles[i].y = rnd.uniformReal(min_y, max_y);
+		particles[i].theta = rnd.uniformReal(min_a, max_a);
+	}
 	/*
 	 */
 	return particles;
@@ -44,7 +48,11 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
-	
+	for(size_t i=0; i < particles.size(); i++){
+		particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0, sigma2);
+		particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0, sigma2);
+		particles[i].theta += delta_t + rnd.gaussian(0, sigma2);
+	}
     }
 
     static std::vector<sensor_msgs::msg::LaserScan> simulate_particle_scans(
@@ -77,6 +85,7 @@ public:
 	int downsampling, float sigma2)
     {
 	std::vector<double> similarities;
+	float sum = 0.0;
 	similarities.resize(simulated_scans.size());
 	/*
 	 * TODO:
@@ -91,6 +100,26 @@ public:
 	 * ensure both simulated and real ranges are finite values. 
 	 */
 	
+	for(size_t i=0; i < simulated_scans.size(); i++){
+		float diff = 0.0;
+		int sum_i = 0;
+		for (size_t j = 0; j < simulated_scans[i].ranges.size(); j++){
+			if(std::isfinite(simulated_scans[i].ranges[j]) && std::isfinite(real_scan.ranges[j*downsampling])){
+				diff += fabs(simulated_scans[i].ranges[j] - real_scan.ranges[j*downsampling]);
+				sum_i++;
+			}
+		}
+		diff = diff/sum_i;
+		similarities[i] = std::exp(- (diff * diff) / (sigma2));		
+	}
+
+	for(size_t i=0; i < similarities.size(); i++){
+		sum += similarities[i];
+	}
+	for(size_t i=0; i < similarities.size(); i++){
+		similarities[i] = similarities[i] / sum;
+	}
+
 	
 	return similarities;
     }
@@ -105,9 +134,18 @@ public:
 	 * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
 	 * Return the chosen integer. 
 	 */
+	int N = probabilities.size();
+	double r = rnd.uniform01();
+	double cumulative = 0.0;
+	for (int i = 0; i < N; i++){
+		cumulative += probabilities[i];
+		if (r < cumulative){
+			return i;
+		}
+	}
+
 	
-	
-	return -1;
+	return N-1;
     }
 
     static std::vector<geometry_msgs::msg::Pose2D> resample_particles(
@@ -123,7 +161,14 @@ public:
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-	
+	for(size_t i=0; i < particles.size(); i++){
+		int chosen = random_choice(probabilities);
+		resampled_particles[i] = particles[chosen];
+		resampled_particles[i].x += rnd.gaussian(0, sigma2);
+		resampled_particles[i].y += rnd.gaussian(0, sigma2);
+		resampled_particles[i].theta += rnd.gaussian(0, sigma2);
+
+	}
 	/*
 	 */
 	return resampled_particles;
