@@ -7,7 +7,7 @@
  * Modify only the sections marked with the TODO comment. 
  */
 #include "particle_filter/ray_tracer.h"
-#define FULL_NAME "Gonzalez Gomez Alejandro"
+#define FULL_NAME "FULL NAME"
 
 class ParticleFilter
 {
@@ -48,12 +48,14 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
-	for(size_t i=0; i < particles.size(); i++)
-	{
-	    particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0, sigma2);
-	    particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0, sigma2);
-	    particles[i].theta += delta_t + rnd.gaussian(0, sigma2);
-	}
+	for (auto& p : particles) {
+        	float dx_world = delta_x * cos(p.theta) - delta_y * sin(p.theta);
+        	float dy_world = delta_x * sin(p.theta) + delta_y * cos(p.theta);
+
+        	p.x += dx_world + rnd.gaussian(0.0f, sigma2);
+        	p.y += dy_world + rnd.gaussian(0.0f, sigma2);
+        	p.theta += delta_t + rnd.gaussian(0.0f, sigma2);
+        }
     }
 
     static std::vector<sensor_msgs::msg::LaserScan> simulate_particle_scans(
@@ -87,7 +89,7 @@ public:
     {
 	std::vector<double> similarities;
 	similarities.resize(simulated_scans.size());
-	/*
+	/*0
 	 * TODO:
 	 * For each particle, calculate the similarity between its simulated scan and the real scan.
 	 * Normalize all similarities (the sum of all values must always be 1.0)
@@ -99,23 +101,8 @@ public:
 	 * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
 	 * ensure both simulated and real ranges are finite values. 
 	 */
-	for(size_t i=0; i < simulated_scans.size(); i++)
-	{
-	    double delta = 0;
-	    for(size_t j=0; j < simulated_scans[i].ranges.size(); j++)
-		if(real_scan.ranges[j*downsampling] < real_scan.range_max && simulated_scans[i].ranges[j] < real_scan.range_max)
-		    delta += fabs(simulated_scans[i].ranges[j] - real_scan.ranges[j*downsampling]);
-		else
-		    delta += real_scan.range_max;
-	    delta /= simulated_scans[i].ranges.size();
-	    similarities[i] = exp(-delta/sigma2);
-	}
-	double sum = 0;
-	for(size_t i=0; i<similarities.size(); i++)
-	    sum += similarities[i];
-	for(size_t i=0; i<similarities.size(); i++)
-	    similarities[i] /= sum;
-
+	
+	
 	return similarities;
     }
     
@@ -129,12 +116,7 @@ public:
 	 * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
 	 * Return the chosen integer. 
 	 */
-	float beta = rnd.uniformReal(0, 1);
-	for(size_t i=0; i < probabilities.size(); i++)
-	    if(beta < probabilities[i])
-		return i;
-	    else
-		beta -= probabilities[i];
+	
 	
 	return -1;
     }
@@ -152,13 +134,7 @@ public:
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-	for(size_t i=0; i<particles.size(); i++)
-	{
-	    int idx = random_choice(probabilities);
-	    resampled_particles[i].x     = particles[idx].x     + rnd.gaussian(0, sigma2);
-	    resampled_particles[i].y     = particles[idx].y     + rnd.gaussian(0, sigma2);
-	    resampled_particles[i].theta = particles[idx].theta + rnd.gaussian(0, sigma2);
-	}
+	
 	/*
 	 */
 	return resampled_particles;
