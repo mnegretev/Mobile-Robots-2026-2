@@ -25,11 +25,11 @@ public:
 	 * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
 	 * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
 	 */
-	for(size_t i=0; i < partcles.size(); i++)
+	for(size_t i=0; i < particles.size(); i++)
 	{
-		partcles[i].x = rnd.uniformReal(min_x,max_x);
-		partcles[i].y = rnd.uniformReal(min_y,max_y);
-		partcles[i].theta = rnd.uniformReal(min_a,max_a);
+    particles[i].x = rnd.uniformReal(min_x,max_x);
+		particles[i].y = rnd.uniformReal(min_y,max_y);
+		particles[i].theta = rnd.uniformReal(min_a,max_a);
 	}
 	/*
 	 */
@@ -49,10 +49,10 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
-		for(size_t i=0: i<particles.size(): i++){
-			partcles[i].x += delta_x*cos(particles[i].theta)-delta_y*sin(particles[i].theta)+rnd.gaussian(0,sigma2);
-			partcles[i].y += delta_x*sin(particles[i].theta)+delta_y*cos(particles[i].theta)+rnd.gaussian(0,sigma2);
-			partcles[i].theta += delta_t+rnd.gaussian(0,sigma2);
+		for(size_t i = 0; i < particles.size(); i++){
+    	particles[i].x += delta_x*cos(particles[i].theta)-delta_y*sin(particles[i].theta)+rnd.gaussian(0,sigma2);
+    	particles[i].y += delta_x*sin(particles[i].theta)+delta_y*cos(particles[i].theta)+rnd.gaussian(0,sigma2);
+    	particles[i].theta += delta_t+rnd.gaussian(0,sigma2);
 		}
 	
     }
@@ -81,33 +81,57 @@ public:
 	return simulated_scans;
     }
 
-    static std::vector<double> get_particle_similarities(
-	std::vector<sensor_msgs::msg::LaserScan>& simulated_scans,
-	sensor_msgs::msg::LaserScan& real_scan,
-	int downsampling, float sigma2)
-    {
-	std::vector<double> similarities;
-	similarities.resize(simulated_scans.size());
-	/*
-	 * TODO:
-	 * For each particle, calculate the similarity between its simulated scan and the real scan.
-	 * Normalize all similarities (the sum of all values must always be 1.0)
-	 * Store results in 'similarities'.
-	 * IMPORTANT NOTE 1. The real sensor scans are DOWNSAMPLED. That is, only 1 out of 'downsampling' scans is considered, i.e.,
-	 * For example, if downsampling=10, then, if real sensor has 500 ranges, simulated scans will only have 50 ranges
-	 * When comparing readings, for each reading in the simulated scan, you should skip 'downsampling' readings
-	 * in the real sensor.
-	 * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
-	 * ensure both simulated and real ranges are finite values. 
-	 */
-	for(size_t i=0; i < particles.size(); i++){
-		similitary=(absoluto(simulated_scans-real_scan))/i
+  static std::vector<double> get_particle_similarities(
+    std::vector<sensor_msgs::msg::LaserScan>& simulated_scans,
+    sensor_msgs::msg::LaserScan& real_scan,
+    int downsampling, float sigma2)
+{
+    std::vector<double> similarities;
+    similarities.resize(simulated_scans.size());
 
-	}
+    /*
+     * TODO:
+     * For each particle, calculate the similarity between its simulated scan and the real scan.
+     * Normalize all similarities (the sum of all values must always be 1.0)
+     * Store results in 'similarities'.
+     * IMPORTANT NOTE 1: The real sensor scans are DOWNSAMPLED. That is, only 1 out of 'downsampling' scans is considered, i.e.,
+     * For example, if downsampling=10, then, if real sensor has 500 ranges, simulated scans will only have 50 ranges
+     * When comparing readings, for each reading in the simulated scan, you should skip 'downsampling' readings in the real sensor.
+     * IMPORTANT NOTE 2: Both, simulated and real scans, can have infinite distances. Thus, when comparing readings,
+     * ensure both simulated and real ranges are finite values. 
+     */
+    for (size_t i = 0; i < simulated_scans.size(); i++) {
+        double total = 1.0;  
 
-	
-	return similarities;
+        for (size_t j = 0; j < simulated_scans[i].ranges.size(); j++) {
+            float a = simulated_scans[i].ranges[j];
+            float b = real_scan.ranges[j * downsampling];  
+            if (std::isfinite(a) && std::isfinite(b)) {
+                double d = a - b;
+                total *= exp(-(d * d) / sigma2);
+            }
+        }
+
+        similarities[i] = total;  
     }
+    double suma = 0.0;
+    for (size_t i = 0; i < similarities.size(); i++) {
+        suma += similarities[i];
+    }
+
+    if (suma > 0.0) {
+        for (size_t i = 0; i < similarities.size(); i++) {
+            similarities[i] /= suma;
+        }
+    } else {
+        double v = 1.0 / similarities.size();
+        for (size_t i = 0; i < similarities.size(); i++) {
+            similarities[i] = v;
+        }
+    }
+
+    return similarities;
+}
     
     static int random_choice(std::vector<double>& probabilities)
     {
@@ -120,8 +144,20 @@ public:
 	 * Return the chosen integer. 
 	 */
 	
-	
-	return -1;
+
+
+    double x = rnd.uniformReal(0.0, 1.0);
+    int N = probabilities.size();
+    int i = 0;
+    while (i < N)
+    {
+        if (x < probabilities[i])
+            return i;
+        x -= probabilities[i];
+        i++;
+    }
+
+    return N - 1;
     }
 
     static std::vector<geometry_msgs::msg::Pose2D> resample_particles(
@@ -137,7 +173,20 @@ public:
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-	
+
+	double sigma = sqrt(sigma2);
+
+	for (size_t i = 0; i < particles.size(); i++) {
+    		int idx = random_choice(probabilities);
+
+			resampled_particles[i].x = particles[idx].x;
+			resampled_particles[i].y = particles[idx].y;
+			resampled_particles[i].theta = particles[idx].theta;
+
+			resampled_particles[i].x += rnd.gaussian(0.0, sigma);
+			resampled_particles[i].y += rnd.gaussian(0.0, sigma);
+			resampled_particles[i].theta += rnd.gaussian(0.0, sigma);
+		}
 	/*
 	 */
 	return resampled_particles;
