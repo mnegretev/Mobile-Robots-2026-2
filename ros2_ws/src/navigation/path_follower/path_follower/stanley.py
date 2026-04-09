@@ -133,12 +133,8 @@ class StanleyNode(Node):
         super().__init__("stanley_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY STANLEY NODE ...")
         self.nav_data = []
-<<<<<<< HEAD
         #self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
         self.data_file = os.path.expanduser("~/stanley_nav_data.txt")
-=======
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
->>>>>>> fork/main
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
@@ -245,11 +241,8 @@ class StanleyNode(Node):
             rclpy.spin_once(self)
             self.get_clock().sleep_for(Duration(seconds=0.005))
 
-<<<<<<< HEAD
             
 
-=======
->>>>>>> fork/main
 
 def main(args=None):
     rclpy.init(args=args)
