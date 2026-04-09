@@ -7,7 +7,10 @@
  * Modify only the sections marked with the TODO comment. 
  */
 #include "particle_filter/ray_tracer.h"
-#define FULL_NAME "FULL NAME"
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#define FULL_NAME "Ivan Daniel Romero Velazquez"
 
 class ParticleFilter
 {
@@ -25,9 +28,13 @@ public:
 	 * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
 	 * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
 	 */
-	
-	/*
-	 */
+        for(size_t i=0; i < particles.size(); i++)
+	{
+	    particles[i].x = rnd.uniformReal(min_x, max_x);
+	    particles[i].y = rnd.uniformReal(min_y, max_y);
+	    particles[i].theta = rnd.uniformReal(min_a, max_a);
+	}
+
 	return particles;
     }
 
@@ -44,10 +51,27 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
-	
-    }
+        sigma2 = std::max(sigma2, 1e-9f);
 
-    static std::vector<sensor_msgs::msg::LaserScan> simulate_particle_scans(
+	auto norm_angle = [](double a){
+		a = std::fmod(a + M_PI, 2.0 * M_PI);
+		if (a < 0) a += 2.0 * M_PI;
+		return a - M_PI;
+	};
+
+	for (size_t i = 0; i < particles.size(); ++i)
+	{
+		const double c = std::cos(particles[i].theta);
+		const double s = std::sin(particles[i].theta);
+
+		particles[i].x     += (delta_x * c - delta_y * s) + rnd.gaussian(0.0, sigma2);
+		particles[i].y     += (delta_x * s + delta_y * c) + rnd.gaussian(0.0, sigma2);
+		particles[i].theta +=  delta_t + rnd.gaussian(0.0, sigma2);
+		particles[i].theta  = norm_angle(particles[i].theta);
+	}
+	}
+        static std::vector<sensor_msgs::msg::LaserScan>
+    simulate_particle_scans(
 	std::vector<geometry_msgs::msg::Pose2D>& particles,
 	nav_msgs::msg::OccupancyGrid& map,
 	sensor_msgs::msg::LaserScan& sensor_specs)
@@ -71,12 +95,13 @@ public:
 	return simulated_scans;
     }
 
-    static std::vector<double> get_particle_similarities(
+        static std::vector<double> get_particle_similarities(
 	std::vector<sensor_msgs::msg::LaserScan>& simulated_scans,
 	sensor_msgs::msg::LaserScan& real_scan,
 	int downsampling, float sigma2)
     {
-	std::vector<double> similarities;
+	sigma2 = std::max(sigma2, 1e-9f); 
+        std::vector<double> similarities;
 	similarities.resize(simulated_scans.size());
 	/*
 	 * TODO:
@@ -90,8 +115,50 @@ public:
 	 * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
 	 * ensure both simulated and real ranges are finite values. 
 	 */
-	
-	
+	const float rmin = real_scan.range_min;
+	const float rmax = real_scan.range_max;
+	const auto& real = real_scan.ranges;
+
+	double sum = 0.0;
+
+	for(size_t i=0; i < simulated_scans.size(); i++)
+	{
+		const auto& sim = simulated_scans[i].ranges;
+		if (sim.empty() || real.empty() || downsampling <= 0) {
+			similarities[i] = 0.0;
+			continue;
+		}
+
+		const size_t count = std::min(sim.size(), real.size() / static_cast<size_t>(downsampling));
+		if (count == 0) { similarities[i] = 0.0; continue; }
+
+		double mean_diff = 0.0;
+		for(size_t j=0; j < count; j++)
+		{
+			const float rr = real[j * static_cast<size_t>(downsampling)];
+			const float rs = sim[j];
+
+			const bool real_ok = std::isfinite(rr) && rr >= rmin && rr <= rmax;
+			const bool  sim_ok = std::isfinite(rs) && rs >= rmin && rs <= rmax;
+
+			if (real_ok && sim_ok) mean_diff += std::fabs(static_cast<double>(rs - rr));
+			else                   mean_diff += rmax; // penaliza inválidos
+		}
+
+		mean_diff /= static_cast<double>(count);
+		similarities[i] = std::exp(-mean_diff / static_cast<double>(sigma2)); // o /sqrt(sigma2) si así definiste
+		sum += similarities[i];
+		}
+
+		// normalización robusta
+		if (sum > 0.0) {
+			for (auto& w : similarities) w /= sum;
+		} else if (!similarities.empty()) {
+			const double u = 1.0 / static_cast<double>(similarities.size());
+			for (auto& w : similarities) w = u;
+		}
+	/*
+	 */
 	return similarities;
     }
     
@@ -105,8 +172,12 @@ public:
 	 * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
 	 * Return the chosen integer. 
 	 */
-	
-	
+        float beta = rnd.uniformReal(0, 1);
+	for(size_t i=0; i < probabilities.size(); i++) {
+		if(beta < probabilities[i]) return static_cast<int>(i);
+		beta -= probabilities[i];
+	}
+	if (!probabilities.empty()) return static_cast<int>(probabilities.size() - 1);
 	return -1;
     }
 
@@ -115,7 +186,8 @@ public:
     {
 
 	random_numbers::RandomNumberGenerator rnd;
-	std::vector<geometry_msgs::msg::Pose2D> resampled_particles(particles.size());
+	std::vector<geometry_msgs::msg::Pose2D>
+        resampled_particles(particles.size());
 	/*
 	 * TODO:
 	 * Sample, with replacement, N particles from the set 'particles'.
@@ -123,7 +195,23 @@ public:
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-	
+	auto norm_angle = [](double a){
+	a = std::fmod(a + M_PI, 2.0 * M_PI);
+	if (a < 0) a += 2.0 * M_PI;
+	return a - M_PI;
+	};
+
+	for(size_t i=0; i<particles.size(); i++)
+	{
+		int idx = ParticleFilter::random_choice(probabilities);
+		if (idx < 0) idx = 0; // fallback seguro
+
+		resampled_particles[i].x     = particles[idx].x     + rnd.gaussian(0, sigma2);
+		resampled_particles[i].y     = particles[idx].y     + rnd.gaussian(0, sigma2);
+		resampled_particles[i].theta = particles[idx].theta + rnd.gaussian(0, sigma2);
+		resampled_particles[i].theta = norm_angle(resampled_particles[i].theta);
+	}
+
 	/*
 	 */
 	return resampled_particles;
