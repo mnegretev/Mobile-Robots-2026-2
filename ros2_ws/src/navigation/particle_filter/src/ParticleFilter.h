@@ -4,10 +4,10 @@
  *
  * Instructions:
  * Write the code necessary to implement localization by particle filters.
- * Modify only the sections marked with the TODO comment. 
+ * Modify only the sections marked with the TODO comment.
  */
 #include "particle_filter/ray_tracer.h"
-#define FULL_NAME "FULL NAME"
+#define FULL_NAME "Santiago Cruz Plaza"
 
 class ParticleFilter
 {
@@ -25,7 +25,11 @@ public:
 	 * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
 	 * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
 	 */
-	
+	for (size_t i = 0; i < particles.size(); ++i) {
+        particles[i].x = rnd.uniformReal(min_x, max_x);
+        particles[i].y = rnd.uniformReal(min_y, max_y);
+        particles[i].theta = rnd.uniformReal(min_a, max_a);
+    }
 	/*
 	 */
 	return particles;
@@ -44,9 +48,14 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
-	
+	for (size_t i=0; i < particles.size(); i++) {
+        float theta = particles[i].theta;
+        // Rotar el desplazamiento al marco local de la partícula: Actualizar posición + Añadir ruido gaussiano
+        particles[i].x += delta_x * cos(theta) - delta_y * sin(theta) + rnd.gaussian(0.0, sigma2);
+        particles[i].y += delta_x * sin(theta) + delta_y * cos(theta) + rnd.gaussian(0.0, sigma2);
+        particles[i].theta += delta_t + rnd.gaussian(0.0, sigma2);
     }
-
+    }
     static std::vector<sensor_msgs::msg::LaserScan> simulate_particle_scans(
 	std::vector<geometry_msgs::msg::Pose2D>& particles,
 	nav_msgs::msg::OccupancyGrid& map,
@@ -54,7 +63,7 @@ public:
     {
 	/*
 	 * TODO:
-	 * Review the code to simulate a laser scan for each particle given the set of particles and a static map. 
+	 * Review the code to simulate a laser scan for each particle given the set of particles and a static map.
 	 */
 	std::vector<sensor_msgs::msg::LaserScan> simulated_scans(particles.size());
 	for(size_t i=0; i < particles.size(); i++)
@@ -64,9 +73,9 @@ public:
 	    sensor_pose.position.y    = particles[i].y;
 	    sensor_pose.orientation.w = cos(particles[i].theta/2);
 	    sensor_pose.orientation.z = sin(particles[i].theta/2);
-	    
+
 	    simulated_scans[i] = ray_tracer::simulateRangeScan(map, sensor_pose, sensor_specs);
-	    
+
 	}
 	return simulated_scans;
     }
@@ -88,13 +97,36 @@ public:
 	 * When comparing readings, for each reading in the simulated scan, you should skip 'downsampling' readings
 	 * in the real sensor.
 	 * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
-	 * ensure both simulated and real ranges are finite values. 
+	 * ensure both simulated and real ranges are finite values.
 	 */
-	
-	
+    	double total = 0.0;
+
+        for (size_t i = 0; i < simulated_scans.size(); ++i) {
+            double delta = 0.0;
+
+            for (size_t j = 0; j < simulated_scans[i].ranges.size(); ++j) {
+                size_t idx = j * downsampling;
+
+                if (idx >= real_scan.ranges.size()) break;
+                float r_sim = simulated_scans[i].ranges[j];
+                float r_real = real_scan.ranges[idx];
+
+                if (std::isfinite(r_sim) && std::isfinite(r_real)) {
+                    delta += std::abs(r_sim - r_real);
+                }
+            }
+            double s = std::exp(-delta * delta / sigma2);
+            similarities[i] = s;
+            total += s;
+        }
+        // Normalizar para que sumen 1
+        if (total > 0.0) {
+            for (double& s : similarities) s /= total;
+        }
+
 	return similarities;
     }
-    
+
     static int random_choice(std::vector<double>& probabilities)
     {
 	random_numbers::RandomNumberGenerator rnd;
@@ -103,11 +135,15 @@ public:
 	 *
 	 * Write an algorithm to choice an integer in the range [0, N-1], with N, the length of 'probabilities'.
 	 * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
-	 * Return the chosen integer. 
+	 * Return the chosen integer.
 	 */
-	
-	
-	return -1;
+    	double r = rnd.uniformReal(0.0, 1.0);
+        double acum = 0.0;
+        for (size_t i = 0; i < probabilities.size(); ++i) {
+            acum += probabilities[i];
+            if (r < acum) return static_cast<int>(i);
+        }
+        return static_cast<int>(probabilities.size()) - 1;
     }
 
     static std::vector<geometry_msgs::msg::Pose2D> resample_particles(
@@ -123,10 +159,18 @@ public:
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-	
+    	for (size_t i = 0; i < particles.size(); ++i) {
+            int idx = random_choice(probabilities);
+            geometry_msgs::msg::Pose2D new_p = particles[idx];
+            // Añadir ruido
+            new_p.x += rnd.gaussian(0.0, sigma2);
+            new_p.y += rnd.gaussian(0.0, sigma2);
+            new_p.theta += rnd.gaussian(0.0, sigma2);
+            resampled_particles[i] = new_p;
+        }
 	/*
 	 */
 	return resampled_particles;
     }
-    
+
 };
