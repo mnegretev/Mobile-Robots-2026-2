@@ -7,7 +7,7 @@
  * Modify only the sections marked with the TODO comment. 
  */
 #include "particle_filter/ray_tracer.h"
-#define FULL_NAME "FULL NAME"
+#define FULL_NAME "Ruiz Esparza Orozco Yanet"
 
 class ParticleFilter
 {
@@ -25,7 +25,12 @@ public:
 	 * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
 	 * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
 	 */
-	
+	for(size_t i=0; i < partcles.size(); i++)
+	{
+		partcles[i].x = rnd.uniformReal(min_x,max_x);
+		partcles[i].y = rnd.uniformReal(min_y,max_y);
+		partcles[i].theta = rnd.uniformReal(min_a,max_a);
+	}
 	/*
 	 */
 	return particles;
@@ -44,6 +49,11 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
+		for(size_t i=0: i<particles.size(): i++){
+			partcles[i].x += delta_x*cos(particles[i].theta)-delta_y*sin(particles[i].theta)+rnd.gaussian(0,sigma2);
+			partcles[i].y += delta_x*sin(particles[i].theta)+delta_y*cos(particles[i].theta)+rnd.gaussian(0,sigma2);
+			partcles[i].theta += delta_t+rnd.gaussian(0,sigma2);
+		}
 	
     }
 
@@ -90,7 +100,11 @@ public:
 	 * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
 	 * ensure both simulated and real ranges are finite values. 
 	 */
-	
+	for(size_t i=0; i < particles.size(); i++){
+		similitary=(absoluto(simulated_scans-real_scan))/i
+
+	}
+
 	
 	return similarities;
     }
