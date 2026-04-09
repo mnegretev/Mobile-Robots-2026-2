@@ -30,6 +30,7 @@ def generate_launch_description():
             name='map_server',
             output='screen',
             parameters=[{'yaml_filename':map_config_file}, {'use_sim_time':True}]
+              
         ),
         TimerAction(
             period=5.0,
@@ -40,7 +41,7 @@ def generate_launch_description():
                     name='lifecycle_bringup',
                     output='screen',
                     arguments=['map_server']
-                )
-            ]
-        )
-    ])
+                )   
+            ]   
+        )   
+    ])   
