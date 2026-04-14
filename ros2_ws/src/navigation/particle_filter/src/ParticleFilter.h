@@ -7,7 +7,7 @@
  * Modify only the sections marked with the TODO comment. 
  */
 #include "particle_filter/ray_tracer.h"
-#define FULL_NAME "FULL NAME"
+#define FULL_NAME "Jose Augusto Garcia Mendoza"
 
 class ParticleFilter
 {
@@ -24,8 +24,13 @@ public:
 	 * Generate a set of N particles (each particle represented by a Pose2D message)
 	 * with positions uniformly distributed within bounding box given by min_x, ..., max_a.
 	 * To generate uniformly distributed random numbers, you can use the funcion rnd.uniformReal(min, max)
-	 */
-	
+	 */ 
+        for (int i = 0; i < N; ++i)
+	{
+  		particles[i].x = rnd.uniformReal(min_x, max_x);
+  		particles[i].y = rnd.uniformReal(min_y, max_y);
+  		particles[i].theta = rnd.uniformReal(min_a, max_a);
+	}	
 	/*
 	 */
 	return particles;
@@ -44,7 +49,13 @@ public:
 	 * Add gaussian noise to each new position. Use sigma2 as variance.
 	 * You can use the function rnd.gaussian(mean, variance)
 	 */
-	
+	for (auto &p : particles) {
+  	float c = std::cos(p.theta), s = std::sin(p.theta);
+  	p.x     += c*delta_x - s*delta_y + rnd.gaussian(0.0, sigma2);
+  	p.y     += s*delta_x + c*delta_y + rnd.gaussian(0.0, sigma2);
+  	p.theta += delta_t + rnd.gaussian(0.0, sigma2);
+  	p.theta  = std::atan2(std::sin(p.theta), std::cos(p.theta)); // opcional
+	}
     }
 
     static std::vector<sensor_msgs::msg::LaserScan> simulate_particle_scans(
@@ -90,8 +101,49 @@ public:
 	 * IMPORTANT NOTE 2. Both, simulated an real scans, can have infinite distances. Thus, when comparing readings,
 	 * ensure both simulated and real ranges are finite values. 
 	 */
-	
-	
+	double sum_sim = 0.0;
+
+for (size_t i = 0; i < simulated_scans.size(); ++i)
+{
+  double sse = 0.0;   // suma de errores cuadrados
+  int cnt = 0;
+
+  const auto &sim  = simulated_scans[i].ranges;
+  const auto &real = real_scan.ranges;
+
+  for (size_t j = 0; j < sim.size(); ++j)
+  {
+    size_t k = j * (size_t)downsampling;
+    if (k >= real.size()) break;
+
+    float rs = sim[j];
+    float rr = real[k];
+
+    // comparar solo si ambos son finitos
+    if (std::isfinite(rs) && std::isfinite(rr))
+    {
+      double e = (double)rs - (double)rr;
+      sse += e * e;
+      cnt++;
+    }
+  }
+
+  // Similaridad Gaussiana (sigma2 = varianza)
+  double sim_i = (cnt > 0 && sigma2 > 0.0f) ? std::exp(-sse / (2.0 * (double)sigma2)) : 1e-12;
+  similarities[i] = sim_i;
+  sum_sim += sim_i;
+}
+
+// Normalizar: suma = 1
+if (!(sum_sim > 0.0) || !std::isfinite(sum_sim))
+{
+  double u = 1.0 / (double)similarities.size();
+  for (auto &v : similarities) v = u;
+}
+else
+{
+  for (auto &v : similarities) v /= sum_sim;
+}
 	return similarities;
     }
     
@@ -106,8 +158,18 @@ public:
 	 * Return the chosen integer. 
 	 */
 	
-	
-	return -1;
+	double sum = 0.0;
+for (double p : probabilities) sum += p;
+if (sum <= 0.0) return -1;
+
+double r = rnd.uniformReal(0.0, sum);
+double acc = 0.0;
+
+for (int i = 0; i < (int)probabilities.size(); ++i) {
+  acc += probabilities[i];
+  if (r <= acc) return i;
+}
+	return (int)probabilities.size() -1;
     }
 
     static std::vector<geometry_msgs::msg::Pose2D> resample_particles(
@@ -118,12 +180,18 @@ public:
 	std::vector<geometry_msgs::msg::Pose2D> resampled_particles(particles.size());
 	/*
 	 * TODO:
-	 * Sample, with replacement, N particles from the set 'particles'.
+	 * Sample, with replacement,N particles from the set 'particles'.
 	 * The probability of the i-th particle to be resampled is given by probabilities[i].
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-	
+	for (size_t k=0;k<particles.size();++k){
+  int i=random_choice(probabilities); if(i<0) i=0;
+  resampled_particles[k]=particles[i];
+  resampled_particles[k].x+=rnd.gaussian(0.0,sigma2);
+  resampled_particles[k].y+=rnd.gaussian(0.0,sigma2);
+  resampled_particles[k].theta=std::atan2(std::sin(resampled_particles[k].theta+rnd.gaussian(0.0,sigma2)), std::cos(resampled_particles[k].theta+rnd.gaussian(0.0,sigma2)));
+	}
 	/*
 	 */
 	return resampled_particles;
