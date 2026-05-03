@@ -6,13 +6,15 @@
 # Complete the code to train a fully connected neural network for
 # handwritten digit recognition.
 #
+from time import time
+
 import cv2
 import sys
 import random
 import numpy
 import os
 
-NAME = "FULL NAME"
+NAME = "Emmanuel Domínguez Osio"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -41,7 +43,11 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
-        
+        y.append(x)
+        for i in range(len(self.weights)):
+            u = numpy.dot(self.weights[i], y[i]) + self.biases[i]
+            x = 1.0 / (1.0 + numpy.exp(-u))
+            y.append(x)
         return y
 
     def backpropagate(self, x, t):
@@ -65,7 +71,13 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
-        
+        delta = (y[-1] - t)*y[-1]*(1-y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = numpy.dot(delta, y[-2].T)
+        for i in range(2, len(self.weights)+1):
+            delta = numpy.dot(self.weights[-i+1].T, delta)*y[-i]*(1-y[-i])
+            nabla_b[-i] = delta
+            nabla_w[-i] = numpy.dot(delta, y[-i-1].T)
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -106,38 +118,77 @@ class FCNeuralNetwork(object):
     #
     ### END OF CLASS
     #
-
-
 def load_dataset(folder):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
-    labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
-              [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
-              [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
-              [0,0,0,0,0,0,0,0,0,1]]
-    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
-    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    # labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
+    #             [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
+    #             [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
+    #             [0,0,0,0,0,0,0,0,0,1]]
+    labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+                [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
     for i in range(10):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
-        label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        # label  = numpy.asarray(labels[i]).reshape([10,1])
+        label  = numpy.asarray(labels[i]).reshape([4,1])
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
         testing_t  += [label for j in range(len(images)//2)]
     return training_x, training_t, testing_x, testing_t
 
+def test_network(args=None):
+    print("TESTING A NEURAL NETWORK - " + NAME)
+    dataset_folder = os.path.join("../dataset")
+    
+    training_time = 0
+    tests = 100
+    max_accuracy = 0
+    opt_params = []
+    t_times = []
+    
+    epochs        = [3, 10, 50, 100]
+    batch_size    = [5, 10, 30, 100]
+    learning_rate = [0.5, 1.0, 3.0, 10.0]
+    training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
+    for e in epochs:
+        for b in batch_size:
+            for l in learning_rate:
+                start_time = time()
+                print("\nEpochs: %d, Batch size: %d, Learning rate: %f" % (e, b, l))
+                nn = FCNeuralNetwork([784,30,4])
+                nn.train_by_SGD(training_x, training_t, e, b, l)
+                correct = 0
+                for i in range(tests):
+                    img,label = testing_x[i], testing_t[i]
+                    y = nn.feedforward(img)[-1]
+                    if numpy.linalg.norm(label - y) < 0.5:
+                        correct += 1
+                end_time = time()
+                training_time = end_time - start_time
+                t_times.append(training_time)
+                print("\nAccuracy: %f" % (correct/tests))
+                print("Total tests: %d, Correctly classified: %d" % (tests, correct))
+                print("Training time: %f s" % training_time)
+                if correct/tests > max_accuracy:
+                    max_accuracy = correct/tests
+                    opt_params = [e, b, l]
+
+    print("\nMaximum accuracy: %f" % max_accuracy)
+    print("Average training time: %f s" % (sum(t_times) / len(t_times)))
+    print("Optimal parameters: Epochs: %d, Batch size: %d, Learning rate: %f" % tuple(opt_params))
+
 def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
     
-    epochs        = 3
-    batch_size    = 50
-    learning_rate = 1.0
+    epochs        = 10
+    batch_size    = 5
+    learning_rate = 3.0
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
+    # nn = FCNeuralNetwork([784,30,10])
+    nn = FCNeuralNetwork([784,30,4])
     nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
 
     print("\nPress key to test network or ESC to exit...")
@@ -153,7 +204,6 @@ def main(args=None):
         cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
         cmd = cv2.waitKey(0)
     
-
-
 if __name__ == '__main__':
     main()
+    # test_network()
