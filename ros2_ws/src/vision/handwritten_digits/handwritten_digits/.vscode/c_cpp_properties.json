@@ -1,0 +1,28 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/install/xarm_controller/include/**",
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/install/xarm_api/include/**",
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/install/xarm_msgs/include/**",
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/install/navig_msgs/include/**",
+        "/opt/ros/jazzy/include/**",
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/src/hardware/xarm/xarm_api/include/**",
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/src/hardware/xarm/xarm_controller/include/**",
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/src/hri/lira_gui/include/**",
+        "/home/robousr/Mobile-Robots-2026-2/ros2_ws/src/navigation/particle_filter/include/**",
+        "/usr/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

@@ -123,13 +123,23 @@ class FCNeuralNetwork(object):
                 self.update_with_batch(batch, eta)
 
     def evaluate(self, testing_x, testing_t):
-        # Evalúa el porcentaje de éxito en todo el set de prueba
         correct_results = 0
         for x, t in zip(testing_x, testing_t):
             y = self.feedforward(x)[-1]
-            # Verificamos si la neurona con mayor activación coincide con el 1 del target
             if numpy.argmax(y) == numpy.argmax(t):
                 correct_results += 1
+        return (correct_results / len(testing_x)) * 100.0
+    
+    def evaluate_binary(self, testing_x, testing_t):
+        correct_results = 0
+        for x, t in zip(testing_x, testing_t):
+            y = self.feedforward(x)[-1]
+            
+            y_bin = (y >= 0.5).astype(int)
+            
+            if numpy.array_equal(y_bin, t):
+                correct_results += 1
+                
         return (correct_results / len(testing_x)) * 100.0
     #
     ### END OF CLASS
@@ -139,17 +149,17 @@ class FCNeuralNetwork(object):
 def load_dataset(folder):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
-    labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
-              [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
-              [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
-              [0,0,0,0,0,0,0,0,0,1]]
-    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
-    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    #labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
+    #          [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
+    #          [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
+    #          [0,0,0,0,0,0,0,0,0,1]]
+    labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+              [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
     for i in range(10):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
-        label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        # label  = numpy.asarray(labels[i]).reshape([10,1])
+        label  = numpy.asarray(labels[i]).reshape([4,1])
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -189,42 +199,48 @@ def main(args=None):
     learning_rates = [0.5, 1.0, 3.0, 10.0]
     epochs_list    = [3, 10, 50, 100]
     batch_sizes    = [5, 10, 30, 100]
+
+    top_configs = [
+        (10.0,50,10),
+        (10.0,100,5),
+        (10.0,100,10),
+        (3.0,100,5),
+        (3.0,50,5)
+    ]
     
     architectures = [
-        [784, 30, 10]
+        [784, 30, 4]
     ]
     
     results = []
-    total_tests = len(learning_rates) * len(epochs_list) * len(batch_sizes) * len(architectures)
+    total_tests = len(architectures) * len(top_configs)
     current_test = 1
     
     for arch in architectures:
-        for lr in learning_rates:
-            for ep in epochs_list:
-                for bs in batch_sizes:
-                    print(f"Prueba {current_test}/{total_tests} | Arch: {arch} | LR: {lr} | Ep: {ep} | Batch: {bs}")
-                    
-                    nn = FCNeuralNetwork(arch)
-                    
-                    start_time = time.time()
-                    nn.train_by_SGD(training_x, training_t, ep, bs, lr)
-                    end_time = time.time()
-                    
-                    training_time = end_time - start_time
-                    
-                    success_rate = nn.evaluate(testing_x, testing_t)
-                    
-                    results.append({
-                        'Arquitectura': str(arch),
-                        'Learning_Rate': lr,
-                        'Epochs': ep,
-                        'Batch_Size': bs,
-                        'Tiempo_Entrenamiento_s': round(training_time, 2),
-                        'Porcentaje_Exito': round(success_rate, 2)
-                    })
-                    current_test += 1
+        for lr, ep, bs in top_configs:
+          print(f"Prueba {current_test}/{total_tests} | Arch: {arch} | LR: {lr} | Ep: {ep} | Batch: {bs}")
+                            
+          nn = FCNeuralNetwork(arch)
+                            
+          start_time = time.time()
+          nn.train_by_SGD(training_x, training_t, ep, bs, lr)
+          end_time = time.time()
+                            
+          training_time = end_time - start_time
+                            
+          success_rate = nn.evaluate_binary(testing_x, testing_t)
+                            
+          results.append({
+            'Arquitectura': str(arch),
+            'Learning_Rate': lr,
+            'Epochs': ep,
+            'Batch_Size': bs,
+            'Tiempo_Entrenamiento_s': round(training_time, 2),
+            'Porcentaje_Exito': round(success_rate, 2)
+          })
+          current_test += 1
 
-    filename = 'nn_training_results.csv'
+    filename = 'nn_binary_training_results.csv'
     with open(filename, mode='w', newline='') as file:
         writer = csv.DictWriter(file, fieldnames=['Arquitectura', 'Learning_Rate', 'Epochs', 'Batch_Size', 'Tiempo_Entrenamiento_s', 'Porcentaje_Exito'])
         writer.writeheader()
