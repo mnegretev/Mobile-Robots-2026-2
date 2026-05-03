@@ -12,7 +12,7 @@ import random
 import numpy
 import os
 
-NAME = "FULL NAME"
+NAME = "Domínguez Palacios Jesús Alejandro"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -41,7 +41,11 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
-        
+        y.append(x)
+        for i in range(len(self.weights)):
+            u = numpy.dot(self.weights[i], x) + self.biases[i]
+            x = 1.0 / (1.0 + numpy.exp(-u))
+            y.append(x)
         return y
 
     def backpropagate(self, x, t):
@@ -65,7 +69,14 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
-        
+        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = numpy.dot(delta, y[-2].T)
+        L = len(self.weights) + 1
+        for i in range(2, L):
+            delta = numpy.dot(self.weights[-i+1].T, delta) * y[-i] * (1 - y[-i])
+            nabla_b[-i] = delta
+            nabla_w[-i] = numpy.dot(delta, y[-i-1].T)
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -150,7 +161,8 @@ def main(args=None):
         print("\nNN output: " + str(y.T))
         print("Expected output  : "   + str(label.T))
         print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
+        digit_img = numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1))
+        cv2.imshow("Digit", cv2.resize(digit_img, (280, 280), interpolation=cv2.INTER_NEAREST))
         cmd = cv2.waitKey(0)
     
 
