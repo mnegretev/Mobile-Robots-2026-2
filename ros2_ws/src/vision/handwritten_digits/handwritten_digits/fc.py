@@ -12,7 +12,7 @@ import random
 import numpy
 import os
 
-NAME = "FULL NAME"
+NAME = "Palomares Quintanar Marcelin"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -41,7 +41,11 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
-        
+        y.append(x)
+        for i in range(len(self.weights)):
+            u = numpy.dot(self.weights[i], x) + self.biases[i]
+            x = 1.0/(1.0 + numpy.exp(-u))
+            y.append(x)
         return y
 
     def backpropagate(self, x, t):
@@ -65,7 +69,13 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
-        
+        delta = (y[-1] - t)*y[-1]*(1 - y[-1])
+        nabla_w[-1] = delta*y[-2].T
+        nabla_b[-1] = delta
+        for i in range(2,len(self.weights)+1):
+            delta =  numpy.dot(self.weights[-i+1].T, delta)*(y[-i]*(1 - y[-i]))
+            nabla_w[-i] = delta*y[-i-1].T
+            nabla_b[-i] = delta
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
