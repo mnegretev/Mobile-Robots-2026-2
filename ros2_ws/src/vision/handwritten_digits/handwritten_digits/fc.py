@@ -10,9 +10,11 @@ import cv2
 import sys
 import random
 import numpy
+import time
+import csv
 import os
 
-NAME = "FULL NAME"
+NAME = "Jose Augusto Garcia Mendoza"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -28,6 +30,16 @@ class FCNeuralNetwork(object):
         
     def feedforward(self, x):
         y = []
+        # La entrada es la salida de la capa 0
+        y.append(x) 
+        # Recorremos todas las capas 
+        for i in range(len(self.weights)):
+        # Producto matricial + bias 
+            u = numpy.dot(self.weights[i], x) + self.biases[i] 
+        # Función sigmoide 
+            x = 1.0 / (1.0 + numpy.exp(-u))
+        # Guardamos salida de la capa 
+            y.append(x)
         #
         # TODO:
         # Calculate the output of each layer given the input x
@@ -65,7 +77,33 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
-        
+        # ==========================
+        # OUTPUT LAYER
+        # ==========================
+
+        # Delta capa de salida
+        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+
+        # Gradiente biases
+        nabla_b[-1] = delta
+
+        # Gradiente pesos
+        nabla_w[-1] = numpy.dot(delta, y[-2].T)
+
+        # ==========================
+        # HIDDEN LAYERS
+        # ==========================
+
+        for i in range(2, len(y)):
+            # Derivada sigmoide
+            sigmoid_prime = y[-i] * (1 - y[-i])
+            # Propagación del error
+            delta = numpy.dot(self.weights[-i + 1].T, delta) * sigmoid_prime
+
+            # Gradientes
+            nabla_b[-i] = delta
+            nabla_w[-i] = numpy.dot(delta, y[-i - 1].T)
+
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -111,47 +149,113 @@ class FCNeuralNetwork(object):
 def load_dataset(folder):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
-    labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
-              [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
-              [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
-              [0,0,0,0,0,0,0,0,0,1]]
-    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
-    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    #labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
+    #          [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
+    #          [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
+    #          [0,0,0,0,0,0,0,0,0,1]]
+    labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+              [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
     for i in range(10):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
-        label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        #label  = numpy.asarray(labels[i]).reshape([10,1])
+        label  = numpy.asarray(labels[i]).reshape([4,1])
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
         testing_t  += [label for j in range(len(images)//2)]
     return training_x, training_t, testing_x, testing_t
 
+def evaluate_network(nn, testing_x, testing_t, n_tests=100):
+    correct = 0
+
+    for _ in range(n_tests):
+        rand_i = numpy.random.randint(0, len(testing_x))
+        img, label = testing_x[rand_i], testing_t[rand_i]
+
+        y = nn.feedforward(img)[-1]
+
+        if numpy.linalg.norm(label - y) < 0.5:
+            correct += 1
+
+    accuracy = (correct / n_tests) * 100.0
+    return accuracy
+
+
 def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
-    dataset_folder = os.path.join("../dataset")
-    
-    epochs        = 3
-    batch_size    = 50
-    learning_rate = 1.0
-    training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
-    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
 
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27:
-        rand_i = numpy.random.randint(0, len(testing_x))
-        img,label = testing_x[rand_i], testing_t[rand_i]
-        y = nn.feedforward(img)[-1]
-        print("\nNN output: " + str(y.T))
-        print("Expected output  : "   + str(label.T))
-        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
+    dataset_folder = os.path.join("../dataset")
+
+    learning_rates = [0.5, 1.0, 3.0, 10.0]
+    epochs_list    = [3, 10, 50, 100]
+    batch_sizes    = [5, 10, 30, 100]
+
+    n_tests = 100
+
+    training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
+
+    results_file = "resultados_barridoBin.csv"
+
+    with open(results_file, mode="w", newline="") as file:
+        writer = csv.writer(file)
+
+        writer.writerow([
+            "architecture",
+            "learning_rate",
+            "epochs",
+            "batch_size",
+            "training_time_s",
+            "accuracy_percent"
+        ])
+
+        for learning_rate in learning_rates:
+            for epochs in epochs_list:
+                for batch_size in batch_sizes:
+
+                    print("\n========================================")
+                    print("Learning rate:", learning_rate)
+                    print("Epochs:", epochs)
+                    print("Batch size:", batch_size)
+                    print("========================================")
+
+                    nn = FCNeuralNetwork([784, 30, 4])
+
+                    start_time = time.time()
+
+                    nn.train_by_SGD(
+                        training_x,
+                        training_t,
+                        epochs,
+                        batch_size,
+                        learning_rate
+                    )
+
+                    end_time = time.time()
+                    training_time = end_time - start_time
+
+                    accuracy = evaluate_network(
+                        nn,
+                        testing_x,
+                        testing_t,
+                        n_tests
+                    )
+
+                    writer.writerow([
+                        "784-30-10",
+                        learning_rate,
+                        epochs,
+                        batch_size,
+                        training_time,
+                        accuracy
+                    ])
+
+                    print("\nResultado:")
+                    print("Tiempo de entrenamiento:", training_time, "s")
+                    print("Accuracy:", accuracy, "%")
+
+    print("\nBarrido terminado.")
+    print("Resultados guardados en:", results_file)
     
 
 
