@@ -1,0 +1,37 @@
+============================================================
+EXPERIMENTOS BINARIOS - Actividad 5
+Isaac Jaciel Zambrano Miranda
+============================================================
+Loading dataset (binary labels) from /home/isaac-zambrano/Mobile-Robots-2026-2/ros2_ws/src/vision/handwritten_digits/handwritten_digits/../dataset
+
+[1/4] Variando tasa de aprendizaje  (arch=[784,30,4], epochs=10, batch=30)
+  lr=  0.5 ... Tiempo=   3.8s  Exactitud=48.0%
+  lr=  1.0 ... Tiempo=   4.0s  Exactitud=64.0%
+  lr=  3.0 ... Tiempo=   3.8s  Exactitud=72.0%
+  lr= 10.0 ... Tiempo=   4.0s  Exactitud=80.0%
+
+[2/4] Variando epocas  (arch=[784,30,4], lr=1.0, batch=30)
+  epochs=  3 ... Tiempo=   1.2s  Exactitud=35.0%
+  epochs= 10 ... Tiempo=   3.8s  Exactitud=61.0%
+  epochs= 50 ... Tiempo=  18.9s  Exactitud=70.0%
+  epochs=100 ... Tiempo=  38.2s  Exactitud=79.0%
+
+[3/4] Variando tamano de lote  (arch=[784,30,4], lr=1.0, epochs=10)
+  batch=  5 ... Tiempo=   4.1s  Exactitud=88.0%
+  batch= 10 ... Tiempo=   4.0s  Exactitud=77.0%
+  batch= 30 ... Tiempo=   3.8s  Exactitud=63.0%
+  batch=100 ... Tiempo=   3.7s  Exactitud=41.0%
+
+[4/4] Arquitecturas  (lr=1.0, epochs=10, batch=30)
+  arch=[784,30,4] ... Tiempo=   3.7s  Exactitud=63.0%
+  arch=[784,64,32,4] ... Tiempo=   8.8s  Exactitud=70.0%
+
+Resultados guardados en: /home/isaac-zambrano/Mobile-Robots-2026-2/ros2_ws/src/vision/handwritten_digits/handwritten_digits/results_binary.csv
+
+Generando graficas...
+  Grafica guardada: /home/isaac-zambrano/Mobile-Robots-2026-2/ros2_ws/src/vision/handwritten_digits/handwritten_digits/results_binary_plot.png
+
+¡Experimentos binarios completos!
+Archivos generados:
+  - results_binary.csv
+  - results_binary_plot.png
