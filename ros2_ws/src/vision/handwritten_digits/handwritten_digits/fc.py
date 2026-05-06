@@ -11,8 +11,10 @@ import sys
 import random
 import numpy
 import os
+import time
+import itertools
 
-NAME = "FULL NAME"
+NAME = "Hernandez Saldivar Hector Saul"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -41,7 +43,12 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
-        
+        y.append(x)
+        for i in range(len(self.weights)):
+            u=numpy.dot(self.weights[i],x)+self.biases[i]
+            x=1.0/(1.0+numpy.exp(-u))
+            y.append(x)
+
         return y
 
     def backpropagate(self, x, t):
@@ -65,7 +72,13 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
-        
+        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+        nabla_w[-1] = delta * y[-2].T
+        nabla_b[-1] = delta
+        for l in range(2, len(self.weights) + 1):
+            delta = numpy.dot(self.weights[-l + 1].T, delta) * (y[-l] * (1 - y[-l]))
+            nabla_w[-l] = delta * y[-l - 1].T
+            nabla_b[-l] = delta
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -111,17 +124,17 @@ class FCNeuralNetwork(object):
 def load_dataset(folder):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
-    labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
-              [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
-              [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
-              [0,0,0,0,0,0,0,0,0,1]]
-    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
-    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    #labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
+     #         [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
+      #        [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
+       #       [0,0,0,0,0,0,0,0,0,1]]
+    labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+              [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
     for i in range(10):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
-        label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        #label  = numpy.asarray(labels[i]).reshape([10,1])
+        label  = numpy.asarray(labels[i]).reshape([4,1])
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -132,27 +145,60 @@ def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
     
-    epochs        = 3
-    batch_size    = 50
-    learning_rate = 1.0
+    print("\nCargando dataset en memoria (esto puede tardar unos segundos)...")
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
-    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
-
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27:
-        rand_i = numpy.random.randint(0, len(testing_x))
-        img,label = testing_x[rand_i], testing_t[rand_i]
-        y = nn.feedforward(img)[-1]
-        print("\nNN output: " + str(y.T))
-        print("Expected output  : "   + str(label.T))
-        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
     
+    
+    lista_epochs = [3, 10, 50, 100]
+    lista_batch  = [5, 10, 30, 100]
+    lista_lr     = [0.5, 1.0, 3.0, 10.0]
+    
+    todas_las_combinaciones = list(itertools.product(lista_epochs, lista_batch, lista_lr))
+    mejor_porcentaje = 0
+    mejores_parametros = None
+
+    for i, (e, b, lr) in enumerate(todas_las_combinaciones, start=1):
+        print("="*10)
+        print(f"EXPERIMENTO {i} / 64")
+        print(f"Parámetros -> Epochs: {e} | Batch: {b} | LR: {lr}")
+        print("=" *10)
+        
+        nn = FCNeuralNetwork([784, 30, 4])
+        
+        tiempo_inicio = time.time()
+        nn.train_by_SGD(training_x, training_t, e, b, lr)
+        tiempo_fin = time.time()
+        tiempo_total = tiempo_fin - tiempo_inicio
+        
+        aciertos = 0
+        num_pruebas = 100
+        
+        for _ in range(num_pruebas):
+            rand_i = numpy.random.randint(0, len(testing_x))
+            img, label = testing_x[rand_i], testing_t[rand_i]
+            y = nn.feedforward(img)[-1] 
+            y_binario = (y >= 0.5).astype(int)
+            if numpy.array_equal(y_binario, label):
+                aciertos += 1
+                
+        porcentaje_exito = (aciertos / num_pruebas) * 100
+        
+        if porcentaje_exito > mejor_porcentaje:
+            mejor_porcentaje = porcentaje_exito
+            mejores_parametros = (e, b, lr)
+        
+        print("="*10)
+        print(f"\nRESULTADOS DEL EXPERIMENTO {i}")
+        print(f"Tiempo de entrenamiento : {tiempo_total:.2f} segundos")
+        print(f"Éxito de clasificación  : {aciertos}/{num_pruebas} ({porcentaje_exito:.2f}%)")
+        print("="*10 + "\n")
+
+    print("="*10)
+    print("¡BÚSQUEDA EN CUADRÍCULA (GRID SEARCH) FINALIZADA!")
+    print(f"Mejor porcentaje: {mejor_porcentaje}%")
+    if mejores_parametros:
+        print(f"Configuración Ganadora -> Epochs: {mejores_parametros[0]} | Batch: {mejores_parametros[1]} | LR: {mejores_parametros[2]}")
+    print("="*10)
 
 
 if __name__ == '__main__':
