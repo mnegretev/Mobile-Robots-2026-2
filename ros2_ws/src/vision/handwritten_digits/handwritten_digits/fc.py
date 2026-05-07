@@ -12,7 +12,7 @@ import random
 import numpy
 import os
 
-NAME = "FULL NAME"
+NAME = "Claudia Eunice Vazquez Rios"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -41,7 +41,11 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
-        
+        y.append(x)
+        for l in range(len(self.weights)):
+            u = numpy.dot(self.weights[l], x) + self.biases[l]
+            x = 1.0 / (1.0 + numpy.exp(-u))   # activación sigmoide
+            y.append(x)
         return y
 
     def backpropagate(self, x, t):
@@ -65,7 +69,17 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
+        # delta de la capa de salida
+        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = numpy.dot(delta, y[-2].T)
         
+        # retropropagación para capas ocultas
+        for l in range(2, len(self.weights)+1):
+            delta = numpy.dot(self.weights[-l+1].T, delta) * y[-l] * (1 - y[-l])
+            nabla_b[-l] = delta
+            nabla_w[-l] = numpy.dot(delta, y[-l-1].T)
+
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -132,14 +146,25 @@ def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
     
+    learning_rate = 0.5
     epochs        = 3
-    batch_size    = 50
-    learning_rate = 1.0
+    batch_size    = 10
+
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
+    # nn = FCNeuralNetwork([784,30,10])
+    nn = FCNeuralNetwork([784,30,4])  
+    # si usas etiquetas binarias
+
+    # entrenamiento normal
     nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
 
+    # cálculo automático de tiempo y tasa de éxito
+    training_time, success_rate = run_experiment(nn, training_x, training_t, testing_x, testing_t, epochs, batch_size, learning_rate)
+
+    print(f"\nTiempo de entrenamiento: {training_time:.2f} s")
+    print(f"Porcentaje de éxito: {success_rate:.2f}%")
+
+    # pruebas manuales con imágenes (opcional)
     print("\nPress key to test network or ESC to exit...")
     numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
     cmd = cv2.waitKey(0)
@@ -149,10 +174,36 @@ def main(args=None):
         y = nn.feedforward(img)[-1]
         print("\nNN output: " + str(y.T))
         print("Expected output  : "   + str(label.T))
-        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
+        print("Correctly classified: "   + str(numpy.argmax(y) == numpy.argmax(label)))
         cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
         cmd = cv2.waitKey(0)
-    
+
+
+
+import time
+
+def run_experiment(nn, training_x, training_t, testing_x, testing_t, epochs, batch_size, learning_rate, num_tests=100):
+    start = time.time()
+
+    # entrenamiento
+    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
+
+    end = time.time()
+    training_time = end - start
+
+    # pruebas de clasificación automáticas
+    correct = 0
+    for i in range(num_tests):
+        rand_i = numpy.random.randint(0, len(testing_x))
+        x, t = testing_x[rand_i], testing_t[rand_i]
+        y = nn.feedforward(x)[-1]
+        predicted = numpy.argmax(y)
+        expected = numpy.argmax(t)
+        if predicted == expected:
+            correct += 1
+
+    success_rate = (correct / num_tests) * 100.0
+    return training_time, success_rate
 
 
 if __name__ == '__main__':
