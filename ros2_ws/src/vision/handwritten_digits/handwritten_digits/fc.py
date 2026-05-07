@@ -11,8 +11,10 @@ import sys
 import random
 import numpy
 import os
+import time
+import csv
 
-NAME = "FULL NAME"
+NAME = "Gonzalez Fernandez Jonathan Uriel"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -28,19 +30,14 @@ class FCNeuralNetwork(object):
         
     def feedforward(self, x):
         y = []
-        #
-        # TODO:
-        # Calculate the output of each layer given the input x
-        # Return an array y containg the output of each layer.
-        # Remember that input x is considered as the layer zero
-        # You can do the following steps:
-        # 
-        # append x to y
-        # FOR i = [0,..,L-1):
-        #   u = dot product (W[i], x) + B[i]
-        #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
-        #   append x to y
-        #
+        y.append(x) # Paso inicial: guardar la entrada como la capa 0
+        for i in range(len(self.weights)):
+            # Cálculo de la entrada ponderada (u)
+            u = numpy.dot(self.weights[i], x) + self.biases[i]
+            # Activación sigmoide
+            x = 1.0 / (1.0 + numpy.exp(-u))
+            # Guardar la activación de esta capa
+            y.append(x)
         
         return y
 
@@ -48,23 +45,18 @@ class FCNeuralNetwork(object):
         y = self.feedforward(x)
         nabla_b = [numpy.zeros(b.shape) for b in self.biases]
         nabla_w = [numpy.zeros(w.shape) for w in self.weights]
-        # TODO:
-        # Return a tuple [nabla_w, nabla_b] containing the gradient of cost function J with respect to
-        # each weight and bias of all the network. The gradient is calculated assuming only one training
-        # example: the input 'x' and the corresponding target 't'.
-        # nabla_w and nabla_b should have the same dimensions as the corresponding
-        # self.weights and self.biases
-        # You can calculate the gradient following these steps:
-        #
-        # Calculate delta for the output layer L: delta=(y[-1]-t)*y[-1]*(1-y[-1])
-        # nabla_b of output layer = delta      
-        # nabla_w of output layer = delta*y[-2].T where y[-2].T is the transpose of the ouput vector of layer L-1
-        # FOR all layers i=[2,L): 
-        #     delta = (W[-i+1].T * delta)*y[-i]*(1 - y[-i])
-        #     where 'W[-i+1].T' is the transpose of the matrix of weights of layer -i+1 and 'y[-i]' is the output of layer -i
-        #     nabla_b[-i] = delta
-        #     nabla_w[-i] = delta*y[-i-1].T  
-        #
+        
+        # 1. Cálculo de delta para la capa de salida (L)
+        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = numpy.dot(delta, y[-2].T) # Nota: el producto externo
+        
+        # 2. Bucle para las capas ocultas (retropropagación)
+        for i in range(2, len(self.weights) + 1):
+            # Delta de la capa oculta
+            delta = numpy.dot(self.weights[-i+1].T, delta) * y[-i] * (1 - y[-i])
+            nabla_b[-i] = delta
+            nabla_w[-i] = numpy.dot(delta, y[-i-1].T)
         
         return nabla_w, nabla_b
 
@@ -111,17 +103,18 @@ class FCNeuralNetwork(object):
 def load_dataset(folder):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
-    labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
-              [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
-              [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
-              [0,0,0,0,0,0,0,0,0,1]]
-    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
-    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    
+    # ETIQUETAS BINARIAS (Descomentadas)
+    labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+              [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+              
     for i in range(10):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
-        label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        
+        # EL TAMAÑO AHORA ES 4, NO 10
+        label  = numpy.asarray(labels[i]).reshape([4,1])
+        
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -129,31 +122,50 @@ def load_dataset(folder):
     return training_x, training_t, testing_x, testing_t
 
 def main(args=None):
-    print("TRAINING A NEURAL NETWORK - " + NAME)
+    print("INICIANDO AUTOMATIZACIÓN DE EXPERIMENTOS (BINARIO) - " + NAME)
     dataset_folder = os.path.join("../dataset")
-    
-    epochs        = 3
-    batch_size    = 50
-    learning_rate = 1.0
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
-    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
-
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27:
-        rand_i = numpy.random.randint(0, len(testing_x))
-        img,label = testing_x[rand_i], testing_t[rand_i]
-        y = nn.feedforward(img)[-1]
-        print("\nNN output: " + str(y.T))
-        print("Expected output  : "   + str(label.T))
-        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
     
+    learning_rates = [0.5, 1.0, 3.0, 10.0]
+    epochs_list    = [3, 10, 50, 100]
+    batch_sizes    = [5, 10, 30, 100]
 
+    # NUEVO ARCHIVO CSV PARA NO BORRAR EL ANTERIOR
+    with open('resultados_p3_binario.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['Tasa_Aprendizaje', 'Epocas', 'Lote', 'Tiempo_Segundos', 'Exito_Porcentaje'])
+
+        for lr in learning_rates:
+            for ep in epochs_list:
+                for bs in batch_sizes:
+                    print(f"\n[+] Entrenando Binario: LR={lr} | Epocas={ep} | Lote={bs}")
+                    
+                    # NUEVA ARQUITECTURA: 4 NEURONAS DE SALIDA
+                    nn = FCNeuralNetwork([784, 30, 4])
+                    
+                    start_time = time.time()
+                    nn.train_by_SGD(training_x, training_t, ep, bs, lr)
+                    end_time = time.time()
+                    train_time = end_time - start_time
+                    
+                    correct_classifications = 0
+                    total_tests = len(testing_x)
+                    
+                    for i in range(total_tests):
+                        img, label = testing_x[i], testing_t[i]
+                        y = nn.feedforward(img)[-1]
+                        
+                        # NUEVA EVALUACIÓN: Distancia entre vectores < 0.5
+                        if numpy.linalg.norm(label - y) < 0.5:
+                            correct_classifications += 1
+                            
+                    success_rate = (correct_classifications / total_tests) * 100.0
+                    print(f"-> Tiempo: {train_time:.2f} s | Éxito: {success_rate:.2f}%")
+                    
+                    writer.writerow([lr, ep, bs, round(train_time, 2), round(success_rate, 2)])
+                    file.flush()
+
+    print("\nExperimentos BINARIOS finalizados. Revisa 'resultados_p3_binario.csv'.")
 
 if __name__ == '__main__':
     main()
