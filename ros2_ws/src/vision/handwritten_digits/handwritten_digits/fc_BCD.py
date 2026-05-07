@@ -118,11 +118,22 @@ class FCNeuralNetwork(object):
                 sys.stdout.flush()
             print("Epoch: " + str(j))
             
+    """        
     def evaluate(self, testing_x, testing_t):
         correct_results = 0
         for x, t in zip(testing_x, testing_t):
             y = self.feedforward(x)[-1]
             if numpy.argmax(y) == numpy.argmax(t):
+                correct_results += 1
+        return (correct_results / len(testing_x)) * 100.0
+    """
+    
+    def evaluate(self, testing_x, testing_t):
+        correct_results = 0
+        for x, t in zip(testing_x, testing_t):
+            y = self.feedforward(x)[-1]
+            y_bin = (y > 0.5).astype(int)
+            if numpy.array_equal(y_bin, t):
                 correct_results += 1
         return (correct_results / len(testing_x)) * 100.0
     #
@@ -133,17 +144,19 @@ class FCNeuralNetwork(object):
 def load_dataset(folder):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
+    """
     labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
               [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
               [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
               [0,0,0,0,0,0,0,0,0,1]]
-    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
-    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    """
+    labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+              [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
     for i in range(10):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
-        label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        #label  = numpy.asarray(labels[i]).reshape([10,1])
+        label  = numpy.asarray(labels[i]).reshape([4,1])
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -160,8 +173,8 @@ def main(args=None):
     batch_size    = 30
     learning_rate = 1.0
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
+    # nn = FCNeuralNetwork([784,30,10])
+    nn = FCNeuralNetwork([784,30,4])
     nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
 
     print("\nPress key to test network or ESC to exit...")
@@ -171,9 +184,15 @@ def main(args=None):
         rand_i = numpy.random.randint(0, len(testing_x))
         img,label = testing_x[rand_i], testing_t[rand_i]
         y = nn.feedforward(img)[-1]
-        print("\nNN output: " + str(y.T))
-        print("Expected output  : "   + str(label.T))
-        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
+        
+        y_bin = (y > 0.5).astype(int)  # Convertir salidas continuas a bits (0 o 1)
+
+        print("\nNN raw output      : " + str(y.T))
+        print("Predicted output   : " + str(y_bin.T))
+        print("Expected output    : " + str(label.T))
+
+        print("Correctly classified: " + str(numpy.array_equal(y_bin, label)))
+        
         cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
         cmd = cv2.waitKey(0)
     """
@@ -187,8 +206,8 @@ def main(args=None):
     epochs_list = [3, 10, 50, 100]
     batch_sizes = [5, 10, 30, 100]
     architectures = [
-        [784,30,10]
-        #[784,64,10]
+        [784,30,4]
+        #[784,64,4]
     ]
 
     results = []
@@ -232,8 +251,8 @@ def main(args=None):
 
                     current_test += 1
 
-    filename = "nn_training_results_Arch1_Decimal.csv" # 784,30,10
-    #filename = "nn_training_results_Arch2_Decimal.csv"  # 784,64,10
+    filename = "nn_training_results_Arch1_BCD.csv"  # 784,30,4
+    #filename = "nn_training_results_Arch2_BCD.csv"  # 784,64,4
 
     with open(filename, mode='w', newline='') as file:
         writer = csv.DictWriter(
