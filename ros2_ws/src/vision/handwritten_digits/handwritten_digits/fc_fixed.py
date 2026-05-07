@@ -11,8 +11,7 @@ import sys
 import random
 import numpy
 import os
-import time
-import csv
+
 NAME = "ITZEL GUADALUPE CAMPOS MARTINEZ"
 
 class FCNeuralNetwork(object):
@@ -42,11 +41,11 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
-        y.append(x)
-        for i in range(len(self.weights)):
-            u= numpy.dot(self.weights[i],x) + self.biases[i]
-            x= 1.0/(1.0 + numpy.exp(-u))
-            y.append(x)
+    y.append(x)
+    for i in range(len(self.weights)):
+    u= numpy.dot(self.weights[i],x) + self.biases[i]
+    x= 1.0/(1.0 + numpy.exp(-u)) 
+    y.append(x)       
         return y
 
     def backpropagate(self, x, t):
@@ -71,12 +70,12 @@ class FCNeuralNetwork(object):
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
         delta = (y[-1] - t) * y[-1] * (1-y[-1])
-        nabla_w[-1] = delta * y[-2].T
-        nabla_b[-1] = delta
-        for i in range(2,len(self.weights)+1):
-            delta = numpy.dot(self.weights[-i+1].T,delta) * (y[-i] * (1-y[-i]))
-            nabla_w[-i] = delta * y[-i-1].T
-            nabla_b[-i] = delta
+    nabla_w[-1] = delta * y[-2].T
+    nabla_b[-1] = delta
+    for i in range(2,len(self.weights)+1):
+        delta = numpy.dot(self.weights[-i+1].T,delta) * (y[-i] * (1-y[-i]))
+        nabla_w[-i] = delta * y[-i-1].T
+        nabla_b[-i] = delta
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -118,16 +117,6 @@ class FCNeuralNetwork(object):
     ### END OF CLASS
     #
 
-    ### FUNCION NUEVA ###
-    def evaluate(self, testing_x, testing_t):
-        correct = 0
-        for x, t in zip(testing_x, testing_t):
-            y = self.feedforward(x)[-1]
-            if numpy.argmax(y) == numpy.argmax(t):
-                correct += 1
-        return correct / len(testing_x)
-    ### FIN DE LA NUEVA FUNCION ###
-
 
 def load_dataset(folder):
     print("Loading data set from " + folder)
@@ -149,63 +138,31 @@ def load_dataset(folder):
         testing_t  += [label for j in range(len(images)//2)]
     return training_x, training_t, testing_x, testing_t
 
-#def main(args=None):
-
-def main():
+def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
-
     dataset_folder = os.path.join("../dataset")
+    
+    epochs        = 3
+    batch_size    = 50
+    learning_rate = 1.0
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
+    nn = FCNeuralNetwork([784,30,10])
+    # nn = FCNeuralNetwork([784,30,4])
+    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
 
-    import csv
-    import time
-
-    learning_rates = [0.5, 1.0, 3.0, 10.0]
-    epochs_list    = [3, 10, 50, 100]
-    batch_sizes    = [5, 10, 30, 100]
-
-    with open("results.csv", mode="w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(["LR", "Epochs", "Batch", "Accuracy", "Time"])
-
-        total_configs = len(learning_rates) * len(epochs_list) * len(batch_sizes)
-        config_count = 0
-
-        for lr in learning_rates:
-            for epochs in epochs_list:
-                for batch in batch_sizes:
-
-                    config_count += 1
-                    print(f"\nConfiguración {config_count}/{total_configs}")
-                    print(f"LR={lr}, Epochs={epochs}, Batch={batch}")
-
-                    acc_total = 0
-                    time_total = 0
-
-                    for i in range(100):  # 🔴 requerido por la práctica
-
-                        nn = FCNeuralNetwork([784,30,10])  # reinicio
-
-                        start = time.time()
-                        nn.train_by_SGD(training_x, training_t, epochs, batch, lr)
-                        end = time.time()
-
-                        acc = nn.evaluate(testing_x, testing_t)
-
-                        acc_total += acc
-                        time_total += (end - start)
-
-                        # progreso opcional
-                        print(f"  Prueba {i+1}/100", end="\r")
-
-                    avg_acc = acc_total / 100
-                    avg_time = time_total / 100
-
-                    writer.writerow([lr, epochs, batch, avg_acc, avg_time])
-
-                    print(f"\nResultado → Accuracy={avg_acc:.4f}, Time={avg_time:.2f}s")
-
-    print("\nTodas las pruebas terminaron. Resultados guardados en results.csv")
+    print("\nPress key to test network or ESC to exit...")
+    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
+    cmd = cv2.waitKey(0)
+    while cmd != 27:
+        rand_i = numpy.random.randint(0, len(testing_x))
+        img,label = testing_x[rand_i], testing_t[rand_i]
+        y = nn.feedforward(img)[-1]
+        print("\nNN output: " + str(y.T))
+        print("Expected output  : "   + str(label.T))
+        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
+        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
+        cmd = cv2.waitKey(0)
+    
 
 
 if __name__ == '__main__':

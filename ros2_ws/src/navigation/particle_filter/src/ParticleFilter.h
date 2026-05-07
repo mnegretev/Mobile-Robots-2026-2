@@ -98,7 +98,7 @@ public:
 	 * For each particle, calculate the similarity between its simulated scan and the real scan.
 	 * Normalize all similarities (the sum of all values must always be 1.0)
 	 * Store results in 'similarities'.
-	 * IMPORTANT NOTE 1. The real sensor scans are DOWNSAMPLED. That is, only 1 out of 'downsampling' scans is considered, i.e.,
+	 * IMPORTANT NOTE 1. The real sensor scans are DOWNSALED. That is, only 1 out of 'downsampling' scans is considered, i.e.,
 	 * For example, if downsampling=10, then, if real sensor has 500 ranges, simulated scans will only have 50 ranges
 	 * When comparing readings, for each reading in the simulated scan, you should skip 'downsampling' readings
 	 * in the real sensor.
@@ -106,41 +106,24 @@ public:
 	 * ensure both simulated and real ranges are finite values. 
 	 */
 	
-        float max_range = real_scan.range_max;  
-	double total_delta_sum = 0.0;  
-	int num_ranges = simulated_scans[0].ranges.size(); 
-	for (size_t i = 0; i < simulated_scans.size(); ++i) {
-            double delta = 0.0;
-	    for (size_t j = 0; j < (size_t)num_ranges; ++j) {
-	    float sim_range = simulated_scans[i].ranges[j];
-	    size_t real_idx = j * downsampling;
-	    if (real_idx < real_scan.ranges.size()) {
-                float real_range = real_scan.ranges[real_idx];
-		if (std::isfinite(sim_range) && std::isfinite(real_range) && sim_range < max_range && real_range < max_range) {
-	        delta += std::fabs(sim_range - real_range);  
-		} else {
-		delta += max_range;  
-		}
-            } else {
-	       	delta += max_range;  
-	    }
-	    }
-            delta /= num_ranges;  
-	    similarities[i] = std::exp(-delta / sigma2);  
-	    total_delta_sum += similarities[i];
-        }   
-        
-	if (total_delta_sum > 0.0) { 
-            for (size_t i = 0; i < similarities.size(); ++i) {
-            similarities[i] /= total_delta_sum;
-	    }
-        } else {
-            
-	    for (size_t i = 0; i < similarities.size(); ++i) {
-	    similarities[i] = 1.0 / similarities.size();
-	    }
-        }   
-        return similarities;
+    	for(size_t i=0; i < simulated_scans.size(); i++)
+	{
+	    double delta = 0;
+	    for(size_t j=0; j < simulated_scans[i].ranges.size(); j++)
+		if(real_scan.ranges[j*downsampling] < real_scan.range_max && simulated_scans[i].ranges[j] < real_scan.range_max)
+		    delta += fabs(simulated_scans[i].ranges[j] - real_scan.ranges[j*downsampling]);
+		else
+		    delta += real_scan.range_max;
+	    delta /= simulated_scans[i].ranges.size();
+	    similarities[i] = exp(-delta/sigma2);
+	}
+	double sum = 0;
+	for(size_t i=0; i<similarities.size(); i++)
+	    sum += similarities[i];
+	for(size_t i=0; i<similarities.size(); i++)
+	    similarities[i] /= sum;
+ 
+       return similarities;
         }    
       	/*
         */     
@@ -155,21 +138,20 @@ public:
 	 * Probability of picking an integer 'i' is given by the corresponding probabilities[i] value.
 	 * Return the chosen integer. 
 	 */
-        double x = rnd.uniformReal(0.0, 1.0);
-	for (size_t i = 0; i < probabilities.size(); ++i) { 
-            if (x < probabilities[i]) {
-            return static_cast<int>(i);  
-	    }
-            x -= probabilities[i];  
-        }  	
+	float beta = rnd.uniformReal(0, 1);
+	for(size_t i=0; i < probabilities.size(); i++)
+	    if(beta < probabilities[i])
+		return i;
+	    else
+		beta -= probabilities[i];
 	/*
         */
 	return -1;
         }
 
-    static std::vector<geometry_msgs::msg::Pose2D> resample_particles(
+        static std::vector<geometry_msgs::msg::Pose2D> resample_particles(
 	std::vector<geometry_msgs::msg::Pose2D>& particles, std::vector<double>& probabilities, float sigma2)
-    {
+        {
 
 	random_numbers::RandomNumberGenerator rnd;
 	std::vector<geometry_msgs::msg::Pose2D> resampled_particles(particles.size());
@@ -180,22 +162,13 @@ public:
 	 * Use the random_choice function to pick a particle with the correct probability.
 	 * Add gaussian noise to each sampled particle (add noise to x,y and theta). Use sigma2 as noise variance.
 	 */
-        for (size_t j = 0; j < particles.size(); ++j) { 
-            int idx = random_choice(probabilities);  
-	    if (idx >= 0) {  
-	    resampled_particles[j] = particles[idx]; 
-	    resampled_particles[j].x += rnd.gaussian(0.0, sigma2);
-       	    resampled_particles[j].y += rnd.gaussian(0.0, sigma2);
-	    resampled_particles[j].theta += rnd.gaussian(0.0, sigma2);
-	    }
-            else
-            {
-            resampled_particles[j] = particles[j % particles.size()];
-	    resampled_particles[j].x += rnd.gaussian(0.0, sigma2);
-	    resampled_particles[j].y += rnd.gaussian(0.0, sigma2);
-	    resampled_particles[j].theta += rnd.gaussian(0.0, sigma2);
-            } 
-        }	
+	for(size_t i=0; i<particles.size(); i++)
+	{
+	    int idx = random_choice(probabilities);
+	    resampled_particles[i].x     = particles[idx].x     + rnd.gaussian(0, sigma2);
+	    resampled_particles[i].y     = particles[idx].y     + rnd.gaussian(0, sigma2);
+	    resampled_particles[i].theta = particles[idx].theta + rnd.gaussian(0, sigma2);
+	}	
 	/*
 	*/
 	return resampled_particles;
