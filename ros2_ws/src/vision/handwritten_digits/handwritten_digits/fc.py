@@ -1,80 +1,50 @@
 #
 # MOBILE ROBOTS - FI-UNAM, 2026-2
-# TRAINING A NEURAL NETWORK
+# TRAINING A NEURAL NETWORK (BINARY CLASSIFICATION)
 #
-# Instructions:
-# Complete the code to train a fully connected neural network for
-# handwritten digit recognition.
+# Oscar Saldivar Pantoja
 #
 import cv2
 import sys
 import random
 import numpy
 import os
+import time
+import csv
 
-NAME = "FULL NAME"
+NAME = "Oscar Saldivar Pantoja"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
-        #
-        # The list 'layers' indicates the number of neurons in each layer.
-        # Remember that the first layer indicates the input dimension. 
-        # All weights and biases are initialized with random values. In each layer (except the first one)
-        # we have a matrix of weights where row j contains all the weights of the j-th neuron in that layer,
-        # and a vector of biases.
-        #
         self.biases =[numpy.random.randn(y,1) for y in layers[1:]] if biases == None else biases
         self.weights=[numpy.random.randn(y,x) for x,y in zip(layers[:-1],layers[1:])] if weights==None else weights
         
     def feedforward(self, x):
         y = []
-        #
-        # TODO:
-        # Calculate the output of each layer given the input x
-        # Return an array y containg the output of each layer.
-        # Remember that input x is considered as the layer zero
-        # You can do the following steps:
-        # 
-        # append x to y
-        # FOR i = [0,..,L-1):
-        #   u = dot product (W[i], x) + B[i]
-        #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
-        #   append x to y
-        #
-        
+        y.append(x)
+        for b, w in zip(self.biases, self.weights):
+            u = numpy.dot(w, x) + b
+            x = 1.0 / (1.0 + numpy.exp(-u))
+            y.append(x)
         return y
 
     def backpropagate(self, x, t):
         y = self.feedforward(x)
         nabla_b = [numpy.zeros(b.shape) for b in self.biases]
         nabla_w = [numpy.zeros(w.shape) for w in self.weights]
-        # TODO:
-        # Return a tuple [nabla_w, nabla_b] containing the gradient of cost function J with respect to
-        # each weight and bias of all the network. The gradient is calculated assuming only one training
-        # example: the input 'x' and the corresponding target 't'.
-        # nabla_w and nabla_b should have the same dimensions as the corresponding
-        # self.weights and self.biases
-        # You can calculate the gradient following these steps:
-        #
-        # Calculate delta for the output layer L: delta=(y[-1]-t)*y[-1]*(1-y[-1])
-        # nabla_b of output layer = delta      
-        # nabla_w of output layer = delta*y[-2].T where y[-2].T is the transpose of the ouput vector of layer L-1
-        # FOR all layers i=[2,L): 
-        #     delta = (W[-i+1].T * delta)*y[-i]*(1 - y[-i])
-        #     where 'W[-i+1].T' is the transpose of the matrix of weights of layer -i+1 and 'y[-i]' is the output of layer -i
-        #     nabla_b[-i] = delta
-        #     nabla_w[-i] = delta*y[-i-1].T  
-        #
+        
+        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = numpy.dot(delta, y[-2].transpose())
+        
+        for i in range(2, len(y)):
+            delta = numpy.dot(self.weights[-i+1].transpose(), delta) * y[-i] * (1 - y[-i])
+            nabla_b[-i] = delta
+            nabla_w[-i] = numpy.dot(delta, y[-i-1].transpose())
         
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
-        #
-        # This function exectutes gradient descend for the subset of examples
-        # given by 'batch' with learning rate 'eta'
-        # 'batch' is a list of training examples [(x,t), ..., (x,t)]
-        # Function returns the magnitude of calculated gradient 
-        #
         batch_nabla_b = [numpy.zeros(b.shape) for b in self.biases]
         batch_nabla_w = [numpy.zeros(w.shape) for w in self.weights]
         M = len(batch)
@@ -91,9 +61,6 @@ class FCNeuralNetwork(object):
         return mag_nabla
 
     def train_by_SGD(self, training_x, training_t, epochs, batch_size, eta):
-        #
-        # This function implements the Stochastic Gradient Descend
-        #
         training_data = list(zip(training_x, training_t))
         for j in range(epochs):
             random.shuffle(training_data)
@@ -103,25 +70,23 @@ class FCNeuralNetwork(object):
                 sys.stdout.write("\rGradient magnitude: %f            " % (nabla_magnitude))
                 sys.stdout.flush()
             print("Epoch: " + str(j))
-    #
-    ### END OF CLASS
-    #
-
 
 def load_dataset(folder):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
-    labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
-              [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
-              [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
-              [0,0,0,0,0,0,0,0,0,1]]
-    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
-    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    
+    # PUNTO 5: Etiquetas en código binario (4 bits)
+    # Representan los dígitos del 0 al 9 en binario
+    labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+              [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    
     for i in range(10):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
-        label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        
+        # AJUSTE: El label ahora es un vector de dimensión 4
+        label = numpy.asarray(labels[i]).reshape([4,1])
+        
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -129,31 +94,50 @@ def load_dataset(folder):
     return training_x, training_t, testing_x, testing_t
 
 def main(args=None):
-    print("TRAINING A NEURAL NETWORK - " + NAME)
+    print("TRAINING A NEURAL NETWORK (BINARY MODE) - " + NAME)
     dataset_folder = os.path.join("../dataset")
-    
-    epochs        = 3
-    batch_size    = 50
-    learning_rate = 1.0
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
-    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
 
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27:
-        rand_i = numpy.random.randint(0, len(testing_x))
-        img,label = testing_x[rand_i], testing_t[rand_i]
-        y = nn.feedforward(img)[-1]
-        print("\nNN output: " + str(y.T))
-        print("Expected output  : "   + str(label.T))
-        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
-    
+    # Parámetros para las pruebas de desempeño
+    learning_rates = [0.5, 1.0, 3.0, 10.0]
+    epochs_list    = [3, 10, 50, 100]
+    batch_sizes    = [5, 10, 30, 100]
 
+    filename = "resultados_binarios.csv"
+
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(["Learning Rate", "Epochs", "Batch Size", "Training Time (s)", "Success Rate (%)"])
+
+        for eta in learning_rates:
+            for ep in epochs_list:
+                for bs in batch_sizes:
+                    print(f"\nEntrenando Binario: eta={eta}, epochs={ep}, batch={bs}")
+                    
+                    # AJUSTE: Arquitectura con 4 neuronas de salida[cite: 2]
+                    nn = FCNeuralNetwork([784, 30, 4])
+                    
+                    start_time = time.time()
+                    nn.train_by_SGD(training_x, training_t, ep, bs, eta)
+                    end_time = time.time()
+                    training_time = end_time - start_time
+
+                    # 100 pruebas de clasificación[cite: 2]
+                    successes = 0
+                    for _ in range(100):
+                        rand_i = numpy.random.randint(0, len(testing_x))
+                        img, label = testing_x[rand_i], testing_t[rand_i]
+                        y = nn.feedforward(img)[-1]
+                        
+                        # Clasificación binaria: umbral de 0.5 para cada bit
+                        prediction = (y > 0.5).astype(int)
+                        if numpy.array_equal(prediction, label):
+                            successes += 1
+                    
+                    writer.writerow([eta, ep, bs, f"{training_time:.2f}", successes])
+                    print(f" -> Tiempo: {training_time:.2f}s, Éxito: {successes}%")
+
+    print(f"\nPruebas binarias completadas. Datos en {filename}")
 
 if __name__ == '__main__':
     main()
