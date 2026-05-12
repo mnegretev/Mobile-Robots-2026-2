@@ -15,7 +15,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->btnBwd->setIcon(icoBwd);
     ui->btnTurnLeft->setIcon(icoTurnLeft);
     ui->btnTurnRight->setIcon(icoTurnRight);
-    
+    //ui->plainTextEdit->setPlainText("hello");
     this->commNode = new RclComm();
     QObject::connect(ui->btnFwd, SIGNAL(pressed()), this, SLOT(btnFwdPressed()));
     QObject::connect(ui->btnFwd, SIGNAL(released()), this, SLOT(btnFwdReleased()));
@@ -25,10 +25,23 @@ MainWindow::MainWindow(QWidget *parent)
     QObject::connect(ui->btnTurnLeft, SIGNAL(released()), this, SLOT(btnTurnLeftReleased()));
     QObject::connect(ui->btnTurnRight, SIGNAL(pressed()), this, SLOT(btnTurnRightPressed()));
     QObject::connect(ui->btnTurnRight, SIGNAL(released()), this, SLOT(btnTurnRightReleased()));
-    std::cout << "Check 3" << std::endl;
+    
     QObject::connect(ui->navTxtStartPose, SIGNAL(returnPressed()), this, SLOT(navBtnCalcPath_pressed()));
     QObject::connect(ui->navTxtGoalPose, SIGNAL(returnPressed()), this, SLOT(navBtnCalcPath_pressed()));
     QObject::connect(ui->navBtnCalcPath, SIGNAL(clicked()), this, SLOT(navBtnCalcPath_pressed()));
+
+    QObject::connect(ui->armTxtAngles1, SIGNAL(valueChanged(double)), this, SLOT(armSbAnglesValueChanged(double)));
+    QObject::connect(ui->armTxtAngles2, SIGNAL(valueChanged(double)), this, SLOT(armSbAnglesValueChanged(double)));
+    QObject::connect(ui->armTxtAngles3, SIGNAL(valueChanged(double)), this, SLOT(armSbAnglesValueChanged(double)));
+    QObject::connect(ui->armTxtAngles4, SIGNAL(valueChanged(double)), this, SLOT(armSbAnglesValueChanged(double)));
+    QObject::connect(ui->armTxtAngles5, SIGNAL(valueChanged(double)), this, SLOT(armSbAnglesValueChanged(double)));
+    QObject::connect(ui->armTxtAngles6, SIGNAL(valueChanged(double)), this, SLOT(armSbAnglesValueChanged(double)));
+    QObject::connect(ui->armTxtArticularGoal, SIGNAL(returnPressed()), this, SLOT(armTxtArticularGoalReturnPressed()));
+    QObject::connect(ui->armTxtCartesianGoal, SIGNAL(returnPressed()), this, SLOT(armTxtCartesianGoalReturnPressed()));
+
+    ros_timer = new QTimer(this);
+    QObject::connect(ros_timer, &QTimer::timeout, this, &MainWindow::processRosMessages);
+    ros_timer->start(20);
 }
 
 MainWindow::~MainWindow()
@@ -142,7 +155,7 @@ void MainWindow::navBtnCalcPath_pressed()
     nav_msgs::msg::Path path, smooth_path;
     if(!commNode->call_plan_path(startX, startY, goalX, goalY, path))
         return;
-    commNode->call_smooth_path(path, smooth_path);
+    //commNode->call_smooth_path(path, smooth_path);
 }
 
 void MainWindow::navBtnExecPath_pressed()
@@ -151,6 +164,17 @@ void MainWindow::navBtnExecPath_pressed()
 
 void MainWindow::armSbAnglesValueChanged(double d)
 {
+   if(ui->armGbArticular->isEnabled())
+    {
+      std::vector<double> Q(6);
+      Q[0] = ui->armTxtAngles1->value();
+      Q[1] = ui->armTxtAngles2->value();
+      Q[2] = ui->armTxtAngles3->value();
+      Q[3] = ui->armTxtAngles4->value();
+      Q[4] = ui->armTxtAngles5->value();
+      Q[5] = ui->armTxtAngles6->value();
+      this->commNode->publish_arm_joint_traj(Q);
+    }
 }
 
 void MainWindow::armSbGripperValueChanged(double d)
@@ -159,10 +183,62 @@ void MainWindow::armSbGripperValueChanged(double d)
 
 void MainWindow::armTxtArticularGoalReturnPressed()
 {
+    std::vector<double> Q(6);
+    std::vector<std::string> parts;
+    
+    std::string str = this->ui->armTxtArticularGoal->text().toStdString();
+    boost::algorithm::to_lower(str);
+    boost::split(parts, str, boost::is_any_of(" ,\t\r\n"), boost::token_compress_on);
+
+    if(parts.size() == 6) //Given data correspond to numbers
+    {
+      for(int i=0; i < 6; i++)
+	{
+	  std::stringstream ss(parts[i]);
+	  if(!(ss >> Q[i]))
+	    {
+	      this->ui->armTxtArticularGoal->setText("Invalid format");
+	      return;
+	    }
+	}
+    }
+    else
+    {
+	this->ui->armTxtArticularGoal->setText("Invalid format");
+	return;
+    }
+    this->commNode->publish_arm_joint_traj(Q);
 }
 
 void MainWindow::armTxtCartesianGoalReturnPressed()
 {
+    std::vector<double> X(6);
+    std::vector<double> Q(6);
+    std::vector<std::string> parts;
+    
+    std::string str = this->ui->armTxtCartesianGoal->text().toStdString();
+    boost::algorithm::to_lower(str);
+    boost::split(parts, str, boost::is_any_of(" ,\t\r\n"), boost::token_compress_on);
+
+    if(parts.size() == 6) //Given data correspond to numbers
+    {
+      for(int i=0; i < 6; i++)
+	{
+	  std::stringstream ss(parts[i]);
+	  if(!(ss >> X[i]))
+	    {
+	      this->ui->armTxtCartesianGoal->setText("Invalid format (x, y, z, R, P, Y)");
+	      return;
+	    }
+	}
+    }
+    else
+    {
+	this->ui->armTxtCartesianGoal->setText("Invalid format (x, y, z, R, P, Y)");
+	return;
+    }
+    this->commNode->call_ik_pose2pose(X[0], X[1], X[2], X[3], X[4], X[5], Q);
+    this->commNode->publish_arm_joint_traj(Q);
 }
 
 void MainWindow::armBtnXpPressed()
@@ -224,4 +300,16 @@ void MainWindow::spgTxtSayReturnPressed()
 
 void MainWindow::sprTxtFakeRecogReturnPressed()
 {
+}
+
+void MainWindow::processRosMessages() {
+  this->commNode->spin_once();
+  this->ui->armLblCurrentQ1->setText(QString::number(this->commNode->current_arm_joints[0], 'f',3));
+  this->ui->armLblCurrentQ2->setText(QString::number(this->commNode->current_arm_joints[1], 'f',3));
+  this->ui->armLblCurrentQ3->setText(QString::number(this->commNode->current_arm_joints[2], 'f',3));
+  this->ui->armLblCurrentQ4->setText(QString::number(this->commNode->current_arm_joints[3], 'f',3));
+  this->ui->armLblCurrentQ5->setText(QString::number(this->commNode->current_arm_joints[4], 'f',3));
+  this->ui->armLblCurrentQ6->setText(QString::number(this->commNode->current_arm_joints[5], 'f',3));
+  if(!rclcpp::ok())
+    QApplication::quit();
 }
