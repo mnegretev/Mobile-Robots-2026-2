@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Emmanuel Domínguez Osio</string>
+   <string>Mobile Robots 2026-2 - FI UNAM</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QGroupBox {
@@ -762,11 +762,11 @@ QRadioButton::indicator{
       </property>
      </widget>
     </widget>
-    <widget class="QWidget" name="tab_2">
+    <widget class="QWidget" name="tab_arm">
      <attribute name="title">
-      <string>Left Arm</string>
+      <string>Manipulator</string>
      </attribute>
-     <widget class="QGroupBox" name="gbNavig_2">
+     <widget class="QGroupBox" name="armGbCartesian">
       <property name="geometry">
        <rect>
         <x>0</x>
@@ -779,9 +779,9 @@ QRadioButton::indicator{
        <string notr="true"/>
       </property>
       <property name="title">
-       <string>Left Arm Cartesian</string>
+       <string>Cartesian</string>
       </property>
-      <widget class="QLineEdit" name="laTxtCartesianGoal">
+      <widget class="QLineEdit" name="armTxtCartesianGoal">
        <property name="geometry">
         <rect>
          <x>50</x>
@@ -789,6 +789,9 @@ QRadioButton::indicator{
          <width>251</width>
          <height>31</height>
         </rect>
+       </property>
+       <property name="text">
+        <string>0.20 0.01 0.00 3.14 0.00 0.00</string>
        </property>
       </widget>
       <widget class="QLabel" name="navLblStartPose_2">
@@ -804,7 +807,7 @@ QRadioButton::indicator{
         <string>Goal:</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnXp">
+      <widget class="QPushButton" name="armBtnXp">
        <property name="geometry">
         <rect>
          <x>140</x>
@@ -823,7 +826,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnYp">
+      <widget class="QPushButton" name="armBtnYp">
        <property name="geometry">
         <rect>
          <x>80</x>
@@ -842,7 +845,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnXm">
+      <widget class="QPushButton" name="armBtnXm">
        <property name="geometry">
         <rect>
          <x>20</x>
@@ -861,7 +864,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnYm">
+      <widget class="QPushButton" name="armBtnYm">
        <property name="geometry">
         <rect>
          <x>80</x>
@@ -880,7 +883,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentX">
+      <widget class="QLabel" name="armLblCurrentX">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -893,7 +896,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnZp">
+      <widget class="QPushButton" name="armBtnZp">
        <property name="geometry">
         <rect>
          <x>220</x>
@@ -912,7 +915,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnZm">
+      <widget class="QPushButton" name="armBtnZm">
        <property name="geometry">
         <rect>
          <x>220</x>
@@ -1009,7 +1012,7 @@ QRadioButton::indicator{
         <string>P</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentY">
+      <widget class="QLabel" name="armLblCurrentY">
        <property name="geometry">
         <rect>
          <x>60</x>
@@ -1022,7 +1025,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentZ">
+      <widget class="QLabel" name="armLblCurrentZ">
        <property name="geometry">
         <rect>
          <x>110</x>
@@ -1035,7 +1038,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentRoll">
+      <widget class="QLabel" name="armLblCurrentRoll">
        <property name="geometry">
         <rect>
          <x>160</x>
@@ -1048,7 +1051,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentPitch">
+      <widget class="QLabel" name="armLblCurrentPitch">
        <property name="geometry">
         <rect>
          <x>210</x>
@@ -1061,7 +1064,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentYaw">
+      <widget class="QLabel" name="armLblCurrentYaw">
        <property name="geometry">
         <rect>
          <x>260</x>
@@ -1087,7 +1090,7 @@ QRadioButton::indicator{
         <string>Current:</string>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnRollp">
+      <widget class="QPushButton" name="armBtnRollp">
        <property name="geometry">
         <rect>
          <x>40</x>
@@ -1106,7 +1109,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnRollm">
+      <widget class="QPushButton" name="armBtnRollm">
        <property name="geometry">
         <rect>
          <x>40</x>
@@ -1125,7 +1128,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnPitchp">
+      <widget class="QPushButton" name="armBtnPitchp">
        <property name="geometry">
         <rect>
          <x>120</x>
@@ -1144,7 +1147,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnPitchm">
+      <widget class="QPushButton" name="armBtnPitchm">
        <property name="geometry">
         <rect>
          <x>120</x>
@@ -1163,7 +1166,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnYawp">
+      <widget class="QPushButton" name="armBtnYawp">
        <property name="geometry">
         <rect>
          <x>200</x>
@@ -1182,7 +1185,7 @@ QRadioButton::indicator{
         </size>
        </property>
       </widget>
-      <widget class="QPushButton" name="laBtnYawm">
+      <widget class="QPushButton" name="armBtnYawm">
        <property name="geometry">
         <rect>
          <x>200</x>
@@ -1202,7 +1205,7 @@ QRadioButton::indicator{
        </property>
       </widget>
      </widget>
-     <widget class="QGroupBox" name="laGbArticular">
+     <widget class="QGroupBox" name="armGbArticular">
       <property name="geometry">
        <rect>
         <x>310</x>
@@ -1212,9 +1215,9 @@ QRadioButton::indicator{
        </rect>
       </property>
       <property name="title">
-       <string>Left Arm Articular</string>
+       <string>Articular</string>
       </property>
-      <widget class="QDoubleSpinBox" name="laTxtAngles5">
+      <widget class="QDoubleSpinBox" name="armTxtAngles5">
        <property name="geometry">
         <rect>
          <x>220</x>
@@ -1239,7 +1242,7 @@ QRadioButton::indicator{
         <double>0.100000000000000</double>
        </property>
       </widget>
-      <widget class="QDoubleSpinBox" name="laTxtAngles1">
+      <widget class="QDoubleSpinBox" name="armTxtAngles1">
        <property name="geometry">
         <rect>
          <x>39</x>
@@ -1264,7 +1267,7 @@ QRadioButton::indicator{
         <double>0.100000000000000</double>
        </property>
       </widget>
-      <widget class="QDoubleSpinBox" name="laTxtAngles4">
+      <widget class="QDoubleSpinBox" name="armTxtAngles4">
        <property name="geometry">
         <rect>
          <x>40</x>
@@ -1328,7 +1331,7 @@ QRadioButton::indicator{
         <string>q5:</string>
        </property>
       </widget>
-      <widget class="QDoubleSpinBox" name="laTxtAngles6">
+      <widget class="QDoubleSpinBox" name="armTxtAngles6">
        <property name="geometry">
         <rect>
          <x>220</x>
@@ -1353,7 +1356,7 @@ QRadioButton::indicator{
         <double>0.100000000000000</double>
        </property>
       </widget>
-      <widget class="QDoubleSpinBox" name="laTxtAngles2">
+      <widget class="QDoubleSpinBox" name="armTxtAngles2">
        <property name="geometry">
         <rect>
          <x>39</x>
@@ -1381,7 +1384,7 @@ QRadioButton::indicator{
         <double>0.000000000000000</double>
        </property>
       </widget>
-      <widget class="QDoubleSpinBox" name="laTxtAngles7">
+      <widget class="QDoubleSpinBox" name="armTxtAngles7">
        <property name="geometry">
         <rect>
          <x>220</x>
@@ -1419,7 +1422,7 @@ QRadioButton::indicator{
         <string>q4:</string>
        </property>
       </widget>
-      <widget class="QDoubleSpinBox" name="laTxtAngles3">
+      <widget class="QDoubleSpinBox" name="armTxtAngles3">
        <property name="geometry">
         <rect>
          <x>39</x>
@@ -1470,7 +1473,7 @@ QRadioButton::indicator{
         <string>q3:</string>
        </property>
       </widget>
-      <widget class="QLineEdit" name="laTxtArticularGoal">
+      <widget class="QLineEdit" name="armTxtArticularGoal">
        <property name="geometry">
         <rect>
          <x>50</x>
@@ -1509,7 +1512,7 @@ QRadioButton::indicator{
         <string>Grip:</string>
        </property>
       </widget>
-      <widget class="QDoubleSpinBox" name="laTxtAnglesG">
+      <widget class="QDoubleSpinBox" name="armTxtAnglesG">
        <property name="geometry">
         <rect>
          <x>221</x>
@@ -1599,7 +1602,7 @@ QRadioButton::indicator{
         <string>q3</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentQ6">
+      <widget class="QLabel" name="armLblCurrentQ6">
        <property name="geometry">
         <rect>
          <x>260</x>
@@ -1625,7 +1628,7 @@ QRadioButton::indicator{
         <string>q4</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentQ2">
+      <widget class="QLabel" name="armLblCurrentQ2">
        <property name="geometry">
         <rect>
          <x>60</x>
@@ -1638,7 +1641,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentQ4">
+      <widget class="QLabel" name="armLblCurrentQ4">
        <property name="geometry">
         <rect>
          <x>160</x>
@@ -1664,7 +1667,7 @@ QRadioButton::indicator{
         <string>q2</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentQ3">
+      <widget class="QLabel" name="armLblCurrentQ3">
        <property name="geometry">
         <rect>
          <x>110</x>
@@ -1677,7 +1680,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentQ1">
+      <widget class="QLabel" name="armLblCurrentQ1">
        <property name="geometry">
         <rect>
          <x>10</x>
@@ -1690,7 +1693,7 @@ QRadioButton::indicator{
         <string>0.000</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentQ5">
+      <widget class="QLabel" name="armLblCurrentQ5">
        <property name="geometry">
         <rect>
          <x>210</x>
@@ -1716,7 +1719,7 @@ QRadioButton::indicator{
         <string>q6</string>
        </property>
       </widget>
-      <widget class="QLabel" name="laLblCurrentQ7">
+      <widget class="QLabel" name="armLblCurrentQ7">
        <property name="geometry">
         <rect>
          <x>310</x>
@@ -1742,1049 +1745,6 @@ QRadioButton::indicator{
         <string>q7</string>
        </property>
       </widget>
-     </widget>
-     <widget class="QRadioButton" name="laRbSendTrajectory">
-      <property name="geometry">
-       <rect>
-        <x>160</x>
-        <y>340</y>
-        <width>151</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Send &amp;Trajectory</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QRadioButton" name="laRbSendSinglePose">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>340</y>
-        <width>151</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Se&amp;nd Single Pose</string>
-      </property>
-      <property name="checked">
-       <bool>false</bool>
-      </property>
-     </widget>
-    </widget>
-    <widget class="QWidget" name="tab_3">
-     <attribute name="title">
-      <string>Right Arm</string>
-     </attribute>
-     <widget class="QGroupBox" name="raGbArticular">
-      <property name="geometry">
-       <rect>
-        <x>310</x>
-        <y>10</y>
-        <width>351</width>
-        <height>321</height>
-       </rect>
-      </property>
-      <property name="title">
-       <string>Right Arm Articular</string>
-      </property>
-      <widget class="QDoubleSpinBox" name="raTxtAngles5">
-       <property name="geometry">
-        <rect>
-         <x>219</x>
-         <y>30</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-      </widget>
-      <widget class="QDoubleSpinBox" name="raTxtAngles1">
-       <property name="geometry">
-        <rect>
-         <x>39</x>
-         <y>30</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-      </widget>
-      <widget class="QDoubleSpinBox" name="raTxtAngles4">
-       <property name="geometry">
-        <rect>
-         <x>40</x>
-         <y>150</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles2_4">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>80</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q2:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles6_8">
-       <property name="geometry">
-        <rect>
-         <x>180</x>
-         <y>80</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q6:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles5_4">
-       <property name="geometry">
-        <rect>
-         <x>180</x>
-         <y>40</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q5:</string>
-       </property>
-      </widget>
-      <widget class="QDoubleSpinBox" name="raTxtAngles6">
-       <property name="geometry">
-        <rect>
-         <x>219</x>
-         <y>70</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-      </widget>
-      <widget class="QDoubleSpinBox" name="raTxtAngles2">
-       <property name="geometry">
-        <rect>
-         <x>39</x>
-         <y>70</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-       <property name="value">
-        <double>0.000000000000000</double>
-       </property>
-      </widget>
-      <widget class="QDoubleSpinBox" name="raTxtAngles7">
-       <property name="geometry">
-        <rect>
-         <x>219</x>
-         <y>110</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles4_4">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>160</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q4:</string>
-       </property>
-      </widget>
-      <widget class="QDoubleSpinBox" name="raTxtAngles3">
-       <property name="geometry">
-        <rect>
-         <x>39</x>
-         <y>110</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles1_4">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>40</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q1:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles3_4">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>120</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q3:</string>
-       </property>
-      </widget>
-      <widget class="QLineEdit" name="raTxtArticularGoal">
-       <property name="geometry">
-        <rect>
-         <x>50</x>
-         <y>220</y>
-         <width>291</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-      </widget>
-      <widget class="QLabel" name="hdLblHeadPoseLbl_5">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>230</y>
-         <width>51</width>
-         <height>16</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Goal:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles6_9">
-       <property name="geometry">
-        <rect>
-         <x>180</x>
-         <y>160</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Grip:</string>
-       </property>
-      </widget>
-      <widget class="QDoubleSpinBox" name="raTxtAnglesG">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>150</y>
-         <width>121</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="keyboardTracking">
-        <bool>false</bool>
-       </property>
-       <property name="decimals">
-        <number>4</number>
-       </property>
-       <property name="minimum">
-        <double>-3.141600000000000</double>
-       </property>
-       <property name="maximum">
-        <double>3.141600000000000</double>
-       </property>
-       <property name="singleStep">
-        <double>0.100000000000000</double>
-       </property>
-      </widget>
-      <widget class="QLabel" name="laLblAngles0_5">
-       <property name="geometry">
-        <rect>
-         <x>180</x>
-         <y>120</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q7:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_28">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q5</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_29">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q1 </string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_16">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>260</y>
-         <width>71</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Current:</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_21">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q3</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentQ6">
-       <property name="geometry">
-        <rect>
-         <x>260</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_30">
-       <property name="geometry">
-        <rect>
-         <x>170</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q4</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentQ2">
-       <property name="geometry">
-        <rect>
-         <x>60</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentQ4">
-       <property name="geometry">
-        <rect>
-         <x>160</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_22">
-       <property name="geometry">
-        <rect>
-         <x>70</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q2</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentQ3">
-       <property name="geometry">
-        <rect>
-         <x>110</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentQ1">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentQ5">
-       <property name="geometry">
-        <rect>
-         <x>210</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_31">
-       <property name="geometry">
-        <rect>
-         <x>270</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q6</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentQ7">
-       <property name="geometry">
-        <rect>
-         <x>310</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_32">
-       <property name="geometry">
-        <rect>
-         <x>320</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>q7</string>
-       </property>
-      </widget>
-     </widget>
-     <widget class="QGroupBox" name="gbNavig_3">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>10</y>
-        <width>311</width>
-        <height>321</height>
-       </rect>
-      </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="title">
-       <string>Right Arm Cartesian</string>
-      </property>
-      <widget class="QLineEdit" name="raTxtCartesianGoal">
-       <property name="geometry">
-        <rect>
-         <x>50</x>
-         <y>220</y>
-         <width>251</width>
-         <height>31</height>
-        </rect>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_9">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>230</y>
-         <width>51</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Goal:</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnXp">
-       <property name="geometry">
-        <rect>
-         <x>140</x>
-         <y>40</y>
-         <width>50</width>
-         <height>40</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>+X</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnYp">
-       <property name="geometry">
-        <rect>
-         <x>80</x>
-         <y>20</y>
-         <width>50</width>
-         <height>40</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>+Y</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnXm">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>40</y>
-         <width>50</width>
-         <height>40</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>-X</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnYm">
-       <property name="geometry">
-        <rect>
-         <x>80</x>
-         <y>70</y>
-         <width>50</width>
-         <height>40</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>-Y</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentX">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnZp">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>20</y>
-         <width>50</width>
-         <height>40</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>+Z</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnZm">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>70</y>
-         <width>50</width>
-         <height>40</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>-Z</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_10">
-       <property name="geometry">
-        <rect>
-         <x>20</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>X</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_11">
-       <property name="geometry">
-        <rect>
-         <x>70</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Y</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_12">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Z</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_13">
-       <property name="geometry">
-        <rect>
-         <x>170</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>R</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_17">
-       <property name="geometry">
-        <rect>
-         <x>270</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Y</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_18">
-       <property name="geometry">
-        <rect>
-         <x>220</x>
-         <y>300</y>
-         <width>21</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>P</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentY">
-       <property name="geometry">
-        <rect>
-         <x>60</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentZ">
-       <property name="geometry">
-        <rect>
-         <x>110</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentRoll">
-       <property name="geometry">
-        <rect>
-         <x>160</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentPitch">
-       <property name="geometry">
-        <rect>
-         <x>210</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="raLblCurrentYaw">
-       <property name="geometry">
-        <rect>
-         <x>260</x>
-         <y>280</y>
-         <width>41</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>0.000</string>
-       </property>
-      </widget>
-      <widget class="QLabel" name="navLblStartPose_33">
-       <property name="geometry">
-        <rect>
-         <x>10</x>
-         <y>260</y>
-         <width>71</width>
-         <height>17</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>Current:</string>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnRollp">
-       <property name="geometry">
-        <rect>
-         <x>40</x>
-         <y>130</y>
-         <width>50</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>+Roll</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnRollm">
-       <property name="geometry">
-        <rect>
-         <x>40</x>
-         <y>170</y>
-         <width>50</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>-Roll</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnPitchp">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>130</y>
-         <width>50</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>+Pitch</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnPitchm">
-       <property name="geometry">
-        <rect>
-         <x>120</x>
-         <y>170</y>
-         <width>50</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>-Pitch</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnYawp">
-       <property name="geometry">
-        <rect>
-         <x>200</x>
-         <y>130</y>
-         <width>50</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>+Yaw</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-      <widget class="QPushButton" name="raBtnYawm">
-       <property name="geometry">
-        <rect>
-         <x>200</x>
-         <y>170</y>
-         <width>50</width>
-         <height>31</height>
-        </rect>
-       </property>
-       <property name="text">
-        <string>-Yaw</string>
-       </property>
-       <property name="iconSize">
-        <size>
-         <width>32</width>
-         <height>32</height>
-        </size>
-       </property>
-      </widget>
-     </widget>
-     <widget class="QRadioButton" name="raRbSendTrajectory">
-      <property name="geometry">
-       <rect>
-        <x>160</x>
-        <y>340</y>
-        <width>151</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Sen&amp;d Trajectory</string>
-      </property>
-      <property name="checked">
-       <bool>true</bool>
-      </property>
-     </widget>
-     <widget class="QRadioButton" name="raRbSendSinglePose">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>340</y>
-        <width>151</width>
-        <height>21</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>Se&amp;nd Single Pose</string>
-      </property>
      </widget>
     </widget>
    </widget>
@@ -2813,54 +1773,28 @@ QRadioButton::indicator{
   <tabstop>btnStop</tabstop>
   <tabstop>spgTxtSay</tabstop>
   <tabstop>sprTxtFakeRecog</tabstop>
-  <tabstop>laBtnXm</tabstop>
-  <tabstop>laBtnXp</tabstop>
-  <tabstop>laBtnYp</tabstop>
-  <tabstop>laBtnYm</tabstop>
-  <tabstop>laBtnZp</tabstop>
-  <tabstop>laBtnZm</tabstop>
-  <tabstop>laBtnRollp</tabstop>
-  <tabstop>laBtnRollm</tabstop>
-  <tabstop>laBtnPitchp</tabstop>
-  <tabstop>laBtnPitchm</tabstop>
-  <tabstop>laBtnYawp</tabstop>
-  <tabstop>laBtnYawm</tabstop>
-  <tabstop>laTxtCartesianGoal</tabstop>
-  <tabstop>laTxtAngles1</tabstop>
-  <tabstop>laTxtAngles2</tabstop>
-  <tabstop>laTxtAngles3</tabstop>
-  <tabstop>laTxtAngles4</tabstop>
-  <tabstop>laTxtAngles5</tabstop>
-  <tabstop>laTxtAngles6</tabstop>
-  <tabstop>laTxtAngles7</tabstop>
-  <tabstop>laTxtAnglesG</tabstop>
-  <tabstop>laTxtArticularGoal</tabstop>
-  <tabstop>laRbSendSinglePose</tabstop>
-  <tabstop>laRbSendTrajectory</tabstop>
-  <tabstop>raBtnXm</tabstop>
-  <tabstop>raBtnXp</tabstop>
-  <tabstop>raBtnYp</tabstop>
-  <tabstop>raBtnYm</tabstop>
-  <tabstop>raBtnZp</tabstop>
-  <tabstop>raBtnZm</tabstop>
-  <tabstop>raBtnRollp</tabstop>
-  <tabstop>raBtnRollm</tabstop>
-  <tabstop>raBtnPitchp</tabstop>
-  <tabstop>raBtnPitchm</tabstop>
-  <tabstop>raBtnYawp</tabstop>
-  <tabstop>raBtnYawm</tabstop>
-  <tabstop>raTxtCartesianGoal</tabstop>
-  <tabstop>raTxtAngles1</tabstop>
-  <tabstop>raTxtAngles2</tabstop>
-  <tabstop>raTxtAngles3</tabstop>
-  <tabstop>raTxtAngles4</tabstop>
-  <tabstop>raTxtAngles5</tabstop>
-  <tabstop>raTxtAngles6</tabstop>
-  <tabstop>raTxtAngles7</tabstop>
-  <tabstop>raTxtAnglesG</tabstop>
-  <tabstop>raTxtArticularGoal</tabstop>
-  <tabstop>raRbSendSinglePose</tabstop>
-  <tabstop>raRbSendTrajectory</tabstop>
+  <tabstop>armBtnXm</tabstop>
+  <tabstop>armBtnXp</tabstop>
+  <tabstop>armBtnYp</tabstop>
+  <tabstop>armBtnYm</tabstop>
+  <tabstop>armBtnZp</tabstop>
+  <tabstop>armBtnZm</tabstop>
+  <tabstop>armBtnRollp</tabstop>
+  <tabstop>armBtnRollm</tabstop>
+  <tabstop>armBtnPitchp</tabstop>
+  <tabstop>armBtnPitchm</tabstop>
+  <tabstop>armBtnYawp</tabstop>
+  <tabstop>armBtnYawm</tabstop>
+  <tabstop>armTxtCartesianGoal</tabstop>
+  <tabstop>armTxtAngles1</tabstop>
+  <tabstop>armTxtAngles2</tabstop>
+  <tabstop>armTxtAngles3</tabstop>
+  <tabstop>armTxtAngles4</tabstop>
+  <tabstop>armTxtAngles5</tabstop>
+  <tabstop>armTxtAngles6</tabstop>
+  <tabstop>armTxtAngles7</tabstop>
+  <tabstop>armTxtAnglesG</tabstop>
+  <tabstop>armTxtArticularGoal</tabstop>
  </tabstops>
  <resources/>
  <connections/>
