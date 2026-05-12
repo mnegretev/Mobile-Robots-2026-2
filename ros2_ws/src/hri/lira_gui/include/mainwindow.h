@@ -2,6 +2,7 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QTimer>
 #include "rclcomm.h"
 #include <iostream>
 #include <boost/algorithm/string.hpp>
@@ -60,5 +61,9 @@ public slots:
 private:
     Ui::MainWindow *ui;
     RclComm *commNode;
+    QTimer *ros_timer;
+
+private slots:
+    void processRosMessages();
 };
 #endif // MAINWINDOW_H
