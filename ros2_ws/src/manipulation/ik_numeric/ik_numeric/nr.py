@@ -155,7 +155,6 @@ class IKNewtonRaphsonNode(Node):
         X = self.forward_kinematics(Q)
         err = X-Xd
         err[3:6] = (err[3:6] + math.pi)%(2*math.pi) - math.pi
-        tolerance = 0.001
         while numpy.linalg.norm(err) > tolerance and iterations < max_iter:
             J = self.jacobian(Q)
             Q = (Q - numpy.dot(numpy.linalg.pinv(J), err) + math.pi)%(2*math.pi) - math.pi
@@ -165,9 +164,6 @@ class IKNewtonRaphsonNode(Node):
             iterations +=1
 
         success = iterations < max_iter
-        if success:
-            self.get_logger().info("IK solved after " + str(iterations) + " steps. Q=" + str(Q))
-        else:
             self.get_logger().info("Cannot solve IK")
         return success, Q
 
