@@ -13,7 +13,7 @@ from manip_msgs.srv import *
 import numpy
 import math
 
-NAME = "FULL NAME"
+NAME = "José Augusto García Mendoza"
 
 H0 = [[1.0, 0.0, 0.0, 0.000], # link1 to link_base, joint rotates on Z
       [0.0, 1.0, 0.0, 0.000],
@@ -87,7 +87,27 @@ class IKNewtonRaphsonNode(Node):
         #     Get RPY from the resulting H
         #     Get xyz from the resulting H
         #
-        x,y,z,R,P,Y = 0,0,0,0,0,0
+        
+        H = numpy.eye(4)
+
+        for i, q in enumerate(Q):
+            Rz = numpy.asarray([
+                [numpy.cos(q), -numpy.sin(q), 0.0, 0.0],
+                [numpy.sin(q),  numpy.cos(q), 0.0, 0.0],
+                [0.0,           0.0,          1.0, 0.0],
+                [0.0,           0.0,          0.0, 1.0]
+            ])
+
+            H = H @ Hs[i] @ Rz
+
+        H = H @ Hs[6]
+
+        x = H[0, 3]
+        y = H[1, 3]
+        z = H[2, 3]
+
+        R, P, Y = self.matrix_to_euler_xyz(H[0:3, 0:3])
+
         return numpy.asarray([x, y, z, R, P, Y])
 
     def jacobian(self, Q):
@@ -112,7 +132,18 @@ class IKNewtonRaphsonNode(Node):
         #           i-th column of J = ( FK(i-th row of q_next) - FK(i-th row of q_prev) ) / (2*delta_q)
         #     RETURN J
         #
-        
+        for i in range(len(Q)):
+            q_next = numpy.asarray(Q, dtype=float).copy()
+            q_prev = numpy.asarray(Q, dtype=float).copy()
+
+            q_next[i] += delta_q
+            q_prev[i] -= delta_q
+
+            fk_next = self.forward_kinematics(q_next)
+            fk_prev = self.forward_kinematics(q_prev)
+
+            J[:, i] = (fk_next - fk_prev) / (2.0 * delta_q)
+
         return J
         
     def inverse_kinematics(self, Xd, init_guess=numpy.zeros(7), max_iter=2000):
@@ -140,7 +171,27 @@ class IKNewtonRaphsonNode(Node):
         #    Set success if maximum iterations were not exceeded
         #    Return success and calculated Q
         #
-        
+        TOL = 0.0001
+
+        Q = numpy.asarray(init_guess, dtype=float)
+        X = self.forward_kinematics(Q)
+        error = X - Xd
+
+        error[3:6] = numpy.arctan2(numpy.sin(error[3:6]), numpy.cos(error[3:6]))
+
+        while numpy.linalg.norm(error) > TOL and iterations < max_iter:
+            J = self.jacobian(Q)
+
+            Q = Q - numpy.linalg.pinv(J) @ error
+
+            Q = numpy.arctan2(numpy.sin(Q), numpy.cos(Q))
+
+            X = self.forward_kinematics(Q)
+            error = X - Xd
+
+            error[3:6] = numpy.arctan2(numpy.sin(error[3:6]), numpy.cos(error[3:6]))
+
+            iterations += 1
         success = iterations < max_iter
         if success:
             self.get_logger().info("IK solved after " + str(iterations) + " steps. Q=" + str(Q))
