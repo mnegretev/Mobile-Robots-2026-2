@@ -11,8 +11,9 @@ import sys
 import random
 import numpy
 import os
+import time
 
-NAME = "FULL NAME"
+NAME = "Javier Enrique Diaz Rivera"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -41,7 +42,11 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
-        
+        y.append (x)
+        for i in range(len(self.weights)):
+            u = numpy.dot(self.weights[i],x) + self.biases[i]
+            x = 1.0 / (1.0 + numpy.exp(-u))
+            y.append(x)
         return y
 
     def backpropagate(self, x, t):
@@ -65,7 +70,14 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
-        
+        delta = (y[-1]-t) * y[-1] * (1-y[-1])
+        nabla_w[-1] = numpy.dot(delta, y[-2].T)
+        nabla_b[-1] = delta
+        for i in range(2, len(self.weights)+1):
+            delta = numpy.dot(self.weights[-i+1].T, delta) * y[-i] * (1-y[-i])
+            nabla_w[-i] = delta * y[-i-1].T
+            nabla_b[-i] = delta
+            
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -121,7 +133,7 @@ def load_dataset(folder):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
         label  = numpy.asarray(labels[i]).reshape([10,1])
-        # label  = numpy.asarray(labels[i]).reshape([4,1])
+        #label  = numpy.asarray(labels[i]).reshape([4,1])
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -131,27 +143,72 @@ def load_dataset(folder):
 def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
+
+    epochs_list = [3, 10, 50, 100]
+    batch_size_list = [5, 10, 30, 100]
+    learning_rate_list = [0.5, 1.0, 3.0, 10.0]
+    yes_rate = []
+    times = []
     
     epochs        = 3
     batch_size    = 50
-    learning_rate = 1.0
-    training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    nn = FCNeuralNetwork([784,30,10])
-    # nn = FCNeuralNetwork([784,30,4])
-    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
+    learning_rate = 1.
+    for epochs in epochs_list:
+        for batch_size in batch_size_list:
+            for learning_rate in learning_rate_list:
+                training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
+                nn = FCNeuralNetwork([784,30,10])
+                #nn = FCNeuralNetwork([784,30,4])
+                print (f"Epochs: {epochs}\nBatch size: {batch_size}\nLearning rate: {learning_rate}")
+                inicio = time.time()
+                nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
+                training_time = time.time() - inicio
+                #print("\nPress key to test network or ESC to exit...")
+                numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
+                
+                yes_count = 0
+                no_count = 0
+                for i in range (100):
+                    # cmd = cv2.waitKey(0) #Comment this line to test the network without showing the images
+                    # while cmd != 27: #ESC key to exit
+                        rand_i = numpy.random.randint(0, len(testing_x))
+                        img,label = testing_x[rand_i], testing_t[rand_i]
+                        y = nn.feedforward(img)[-1]
+                        print("\nNN output: " + str(y.T))
+                        print("Expected output  : "   + str(label.T))
+                        if numpy.linalg.norm(label - y) < 0.5:
+                            print ("Correctly classiefied: SI c:")
+                            yes_count += 1
+                        else:
+                            print ("Correctly clasified: No :/")
+                            no_count += 1
+                        # cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1))) #Comment this line to test the network without showing the images
+                        # cmd = cv2.waitKey(0) #Comment this line to test the network without showing the images
+                print (yes_count, no_count)
+                yes_rate.append(yes_count)
+                print("Training time: " + str(training_time))
+                times.append(training_time)
 
-    print("\nPress key to test network or ESC to exit...")
-    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
-    cmd = cv2.waitKey(0)
-    while cmd != 27:
-        rand_i = numpy.random.randint(0, len(testing_x))
-        img,label = testing_x[rand_i], testing_t[rand_i]
-        y = nn.feedforward(img)[-1]
-        print("\nNN output: " + str(y.T))
-        print("Expected output  : "   + str(label.T))
-        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
-        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
-        cmd = cv2.waitKey(0)
+    print (yes_rate)
+    print (times)
+    s = ""
+    for rates in yes_rate:
+        s += str(rates) + " "
+    s += "\n"
+    for t in times: 
+        s += str(t) + " "
+
+    f = open("results_decimal_yan.txt", "w")
+    f.write(s)
+    f.close()
+
+
+    
+
+
+        #print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
+        #cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
+        #cmd = cv2.waitKey(0)
     
 
 

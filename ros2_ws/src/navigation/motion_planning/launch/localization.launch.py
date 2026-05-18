@@ -23,7 +23,13 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             arguments=['-d', rviz_config_file,'--ros-args', '-p', 'use_sim_time:=True',],
-        ),        
+        ),   
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='map_to_odom_tf',
+            arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
+        ),     
         Node(
             package='nav2_map_server',
             executable='map_server',
@@ -31,16 +37,27 @@ def generate_launch_description():
             output='screen',
             parameters=[{'yaml_filename':map_config_file}, {'use_sim_time':True}]
         ),
-        TimerAction(
-            period=5.0,
-            actions=[
-                Node(
-                    package='nav2_util',
-                    executable='lifecycle_bringup',
-                    name='lifecycle_bringup',
-                    output='screen',
-                    arguments=['map_server']
-                )
+        # TimerAction(
+        #     period=5.0,
+        #     actions=[
+        #         Node(
+        #             package='nav2_util',
+        #             executable='lifecycle_bringup',
+        #             #name='lifecycle_bringup',
+        #             output='screen',
+        #             arguments=['map_server']
+        #         )
+        #     ]
+        # )
+        Node(
+            package='nav2_lifecycle_manager',
+            executable='lifecycle_manager',
+            name='lifecycle_manager_localization',
+            output='screen',
+            parameters=[
+                {'use_sim_time': True},
+                {'autostart': True},
+                {'node_names': ['map_server']}
             ]
         )
     ])
