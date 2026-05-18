@@ -13,7 +13,7 @@ from manip_msgs.srv import *
 import numpy
 import math
 
-NAME = "FULL NAME"
+NAME = "Mercado ALejandre Mario Daniel"
 
 H0 = [[1.0, 0.0, 0.0, 0.000], # link1 to link_base, joint rotates on Z
       [0.0, 1.0, 0.0, 0.000],
@@ -87,7 +87,17 @@ class IKNewtonRaphsonNode(Node):
         #     Get RPY from the resulting H
         #     Get xyz from the resulting H
         #
-        x,y,z,R,P,Y = 0,0,0,0,0,0
+        H = numpy.identity(4)
+        for i in range(6):
+            R = numpy.asarray([[numpy.cos(Q[i]), -numpy.sin(Q[i]), 0, 0],
+                   [numpy.sin(Q[i]),  numpy.cos(Q[i]), 0, 0],
+                   [0, 0, 1, 0],
+                   [0, 0, 0, 1]])
+            H = numpy.dot(numpy.dot(H, Hs[i]), R)
+        
+        H = numpy.dot(H, Hs[6])
+        R, P ,Y = self.matrix_to_euler_xyz(H)
+        x, y, z = H[0,3], H[1,3], H[2,3]
         return numpy.asarray([x, y, z, R, P, Y])
 
     def jacobian(self, Q):
@@ -112,7 +122,10 @@ class IKNewtonRaphsonNode(Node):
         #           i-th column of J = ( FK(i-th row of q_next) - FK(i-th row of q_prev) ) / (2*delta_q)
         #     RETURN J
         #
-        
+        qn = numpy.asarray([Q] * len(Q)) + delta_q * numpy.identity(len(Q))
+        qp = numpy.asarray([Q] * len(Q)) - delta_q * numpy.identity(len(Q))
+        for i in range(6):
+            J[:, i] = (self.forward_kinematics(qn[i]) - self.forward_kinematics(qp[i])) / (2.0 * delta_q)
         return J
         
     def inverse_kinematics(self, Xd, init_guess=numpy.zeros(7), max_iter=2000):
@@ -140,6 +153,31 @@ class IKNewtonRaphsonNode(Node):
         #    Set success if maximum iterations were not exceeded
         #    Return success and calculated Q
         #
+        TOL = 0.001
+        X = self.forward_kinematics(Q)
+        error = X - Xd
+        for k in range(3, 6):
+            while error[k] >  numpy.pi: error[k] -= 2.0 * numpy.pi
+            while error[k] <= -numpy.pi: error[k] += 2.0 * numpy.pi
+ 
+        while numpy.linalg.norm(error) > TOL and iterations < max_iter:
+            J = self.jacobian(Q)
+ 
+            J_pinv = numpy.linalg.pinv(J)
+            Q = Q - numpy.dot(J_pinv, error)
+ 
+            for k in range(6):
+                while Q[k] >  numpy.pi: Q[k] -= 2.0 * numpy.pi
+                while Q[k] <= -numpy.pi: Q[k] += 2.0 * numpy.pi
+ 
+            X = self.forward_kinematics(Q)
+            error = X - Xd
+            for k in range(3, 6):
+                while error[k] >  numpy.pi: error[k] -= 2.0 * numpy.pi
+                while error[k] <= -numpy.pi: error[k] += 2.0 * numpy.pi
+ 
+            iterations += 1
+
         
         success = iterations < max_iter
         if success:
