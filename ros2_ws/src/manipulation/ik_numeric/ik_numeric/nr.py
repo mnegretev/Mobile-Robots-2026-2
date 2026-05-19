@@ -13,7 +13,7 @@ from manip_msgs.srv import *
 import numpy
 import math
 
-NAME = "FULL NAME"
+NAME = "DOMINGUEZ PALACIOS JESÚS ALEJANDRO"
 
 H0 = [[1.0, 0.0, 0.0, 0.000], # link1 to link_base, joint rotates on Z
       [0.0, 1.0, 0.0, 0.000],
@@ -77,69 +77,72 @@ class IKNewtonRaphsonNode(Node):
         #
         # TODO:
         # Calculate the forward kinematics given the set of six angles 'q'
-        # You can use the following steps:
-        #     H = I   # Assing to H a 4x4 identity matrix
-        #     for all q in Q:
-        #         R = Homogeneous transformation with zero translation and rotated q[rad] over z-axis
-        #         R should be a numpy matrix
-        #         H = H * Hs[i] * R
-        #     H = H * Hs[6]
-        #     Get RPY from the resulting H
-        #     Get xyz from the resulting H
         #
-        x,y,z,R,P,Y = 0,0,0,0,0,0
+        H = numpy.identity(4)
+        for i in range(len(Q)):
+            c = math.cos(Q[i])
+            s = math.sin(Q[i])
+            Rz = numpy.asarray([[c, -s, 0.0, 0.0],
+                                [s,  c, 0.0, 0.0],
+                                [0.0, 0.0, 1.0, 0.0],
+                                [0.0, 0.0, 0.0, 1.0]])
+            H = H @ Hs[i] @ Rz
+        H = H @ Hs[6]
+        x = H[0, 3]
+        y = H[1, 3]
+        z = H[2, 3]
+        R, P, Y = self.matrix_to_euler_xyz(H[0:3, 0:3])
         return numpy.asarray([x, y, z, R, P, Y])
 
     def jacobian(self, Q):
         delta_q = 0.000001
-        J = numpy.asarray([[0.0 for q in Q] for i in range(6)])
+        Q = numpy.asarray(Q, dtype=float)
+        n = len(Q)
+        J = numpy.zeros((6, n))
         #
         # TODO:
         # Calculate the Jacobian evaluated in the point Q
         # Use the numeric approximation:   f'(x) = (f(x+delta) - f(x-delta))/(2*delta)
         #
-        # You can do the following steps:
-        #     J = matrix of 6x6 full of zeros
-        #     q_next = [q1+delta       q2        q3   ....     q7
-        #                  q1       q2+delta     q3   ....     q7
-        #                              ....
-        #                  q1          q2        q3   ....   q7+delta]
-        #     q_prev = [q1-delta       q2        q3   ....     q7
-        #                  q1       q2-delta     q3   ....     q7
-        #                              ....
-        #                  q1          q2        q3   ....   q7-delta]
-        #     FOR i = 0,..,5:
-        #           i-th column of J = ( FK(i-th row of q_next) - FK(i-th row of q_prev) ) / (2*delta_q)
-        #     RETURN J
-        #
-        
+        for i in range(n):
+            q_next = numpy.copy(Q)
+            q_prev = numpy.copy(Q)
+            q_next[i] += delta_q
+            q_prev[i] -= delta_q
+            J[:, i] = (self.forward_kinematics(q_next) - self.forward_kinematics(q_prev)) / (2.0 * delta_q)
         return J
         
     def inverse_kinematics(self, Xd, init_guess=numpy.zeros(7), max_iter=2000):
-        Xd= numpy.asarray(Xd)
-        Q = init_guess
+        Xd = numpy.asarray(Xd)
+        Q = numpy.asarray(init_guess, dtype=float)
         iterations = 0
+        TOL = 0.00001
 
         #
         # TODO:
         # Solve the IK problem given a desired configuration.
-        # Use the Newton-Raphson method for root finding. (Find the roots of equation FK(q) - Xd = 0)
-        # You can do the following steps:
+        # Use the Newton-Raphson method for root finding.
         #
-        #    Set an initial guess for joints 'Q'
-        #    Calculate Forward Kinematics 'X' by calling the corresponding function
-        #    Calcualte error = X - Xd
-        #    Ensure orientation angles of error are in (-pi,pi]
-        #    WHILE |error| > TOL and iterations < maximum iterations:
-        #        Calculate Jacobian
-        #        Update estimated Q with Q = Q - pseudo_inverse(J)*error
-        #        Ensure all angles q are in [-pi,pi]
-        #        Recalculate forward kinematics X
-        #        Recalculate error and ensure angles are in (-pi,pi]
-        #        Increment iterations
-        #    Set success if maximum iterations were not exceeded
-        #    Return success and calculated Q
-        #
+        X = self.forward_kinematics(Q)
+        error = X - Xd
+        # Ensure orientation angles of error are in (-pi, pi]
+        for i in range(3, 6):
+            while error[i] >   math.pi: error[i] -= 2 * math.pi
+            while error[i] <= -math.pi: error[i] += 2 * math.pi
+
+        while numpy.linalg.norm(error) > TOL and iterations < max_iter:
+            J = self.jacobian(Q)
+            Q = Q - numpy.linalg.pinv(J) @ error
+            # Ensure all angles q are in [-pi, pi]
+            for i in range(len(Q)):
+                while Q[i] >  math.pi: Q[i] -= 2 * math.pi
+                while Q[i] < -math.pi: Q[i] += 2 * math.pi
+            X = self.forward_kinematics(Q)
+            error = X - Xd
+            for i in range(3, 6):
+                while error[i] >   math.pi: error[i] -= 2 * math.pi
+                while error[i] <= -math.pi: error[i] += 2 * math.pi
+            iterations += 1
         
         success = iterations < max_iter
         if success:
