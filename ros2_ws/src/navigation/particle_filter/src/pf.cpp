@@ -149,8 +149,9 @@ public:
 		double estimated_x, estimated_y, estimated_a;
 		this->get_estimated_pose(particles, estimated_x, estimated_y, estimated_a);
 		RCLCPP_INFO(this->get_logger(), "Iteration: %d", (++iteration));
-		RCLCPP_INFO(this->get_logger(), "Estimated pose: x=%lf\ty=%lf\ta=%lf",estimated_x, estimated_y, estimated_a);
-		RCLCPP_INFO(this->get_logger(), "Groundtruth pose: x=%lf\ty=%lf\ta=%lf",this->groundtruth_x, this->groundtruth_y, this->groundtruth_a);
+		RCLCPP_INFO(this->get_logger(), "Estimated pose (x, y, a): (%.3f, %.3f, %.3f)",estimated_x, estimated_y, estimated_a);
+		RCLCPP_INFO(this->get_logger(), "Groundtruth pose (x, y, a): (%.3f, %.3f, %.3f)",this->groundtruth_x, this->groundtruth_y, this->groundtruth_a);
+		RCLCPP_INFO(this->get_logger(), "Root error: %.3f", std::sqrt( std::pow((estimated_x - this->groundtruth_x),2) + std::pow((estimated_y - this->groundtruth_y),2) + std::pow((estimated_a - this->groundtruth_a) ,2)));
 	    }
 	    tf_odom_to_map.header.stamp = this->get_clock()->now();
 	    this->tf_broadcaster->sendTransform(tf_odom_to_map);
