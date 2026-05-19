@@ -1,0 +1,14 @@
+experimento_num,variable_modificada,valor_variable,learning_rate,epochs,batch_size,architecture,tiempo_entrenamiento_seg,porcentaje_exito,n_tests
+1,learning_rate,0.5,0.5,10,30,784-30-4,6.03,45.0,100
+2,learning_rate,1.0,1.0,10,30,784-30-4,5.88,64.0,100
+3,learning_rate,3.0,3.0,10,30,784-30-4,6.19,73.0,100
+4,learning_rate,10.0,10.0,10,30,784-30-4,6.34,78.0,100
+5,epochs,3,1.0,3,30,784-30-4,1.82,41.0,100
+6,epochs,50,1.0,50,30,784-30-4,30.77,74.0,100
+7,epochs,100,1.0,100,30,784-30-4,64.95,75.0,100
+8,batch_size,5,1.0,10,5,784-30-4,7.46,76.0,100
+9,batch_size,10,1.0,10,10,784-30-4,6.73,74.0,100
+10,batch_size,100,1.0,10,100,784-30-4,6.18,35.0,100
+11,architecture,784-64-4,1.0,10,30,784-64-4,11.57,63.0,100
+12,architecture,784-30-20-4,1.0,10,30,784-30-20-4,7.51,65.0,100
+13,MEJOR_COMBINACION,"lr=10.0, ep=100, batch=5, arch=784-30-4",10.0,100,5,784-30-4,106.67,88.0,100
