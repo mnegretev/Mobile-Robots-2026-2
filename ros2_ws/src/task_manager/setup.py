@@ -1,3 +1,5 @@
+import os
+from glob import glob
 from setuptools import find_packages, setup
 
 package_name = 'task_manager'
@@ -10,6 +12,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -25,6 +28,7 @@ setup(
     entry_points={
         'console_scripts': [ 
           'nav_action_server = task_manager.nav_action_server:main', 
+            'task_manager_node = task_manager.task_manager:main',
         ],
     },
 )

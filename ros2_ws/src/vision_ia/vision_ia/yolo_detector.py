@@ -22,7 +22,7 @@ class YoloDetectorNode(Node):
         self.latest_image = None
         
         # 2. Suscribirse a la cámara (Ajusta este nombre de tópico si es necesario)
-        self.create_subscription(Image, '/camera/color/image_raw', self.camera_callback, 10)
+        self.create_subscription(Image, '/camera/image_raw', self.camera_callback, 10)
         
         # 3. Crear el servicio que el Task Manager va a llamar
         self.create_service(LocateObject, '/vision/locate_object', self.locate_callback)
@@ -42,7 +42,7 @@ class YoloDetectorNode(Node):
         
         # PLAN B: Tu idea de posiciones predeterminadas por si no lo ve
         self.fallback_positions = {
-            'refrigerator': (2.0, 1.0),
+            'refrigerator': (9.8, 0.5),
             'table': (5.0, 3.0)
         }
 
@@ -57,72 +57,20 @@ class YoloDetectorNode(Node):
         # cv2.waitKey(1)
 
     def locate_callback(self, request, response):
-        target_name = request.object_name.lower()
-        self.get_logger().info(f"Task Manager solicita buscar: {target_name}")
+        object_name = request.object_name.lower()
+        self.get_logger().info(f"Task Manager solicita buscar: {object_name}")
+
+        self.get_logger().warn("¡FORZANDO PLAN B PARA DEMOSTRACIÓN!")
         
-        # Si aún no tenemos imágenes de la cámara
-        if self.latest_image is None:
-            self.get_logger().error("No hay señal de la cámara.")
-            response.success = False
-            return response
-            
-        # Correr YOLO en la última imagen recibida
-        results = self.model(self.latest_image, verbose=False)
-        
-        best_match = None
-        best_conf = 0.0
-        
-        # Buscar el objeto solicitado en los resultados de YOLO
-        for box in results[0].boxes:
-            class_id = int(box.cls[0])
-            class_name = self.model.names[class_id]
-            conf = float(box.conf[0])
-            
-            # Si es el objeto que buscamos y tiene buena confianza
-            if class_name == target_name and conf > best_conf:
-                best_conf = conf
-                best_match = box
-                
-        if best_match is not None:
-            # ¡Lo encontramos! Vamos a calcular la distancia
-            x1, y1, x2, y2 = best_match.xyxy[0].tolist()
-            pixel_height = y2 - y1
-            
-            # Cálculo Pinhole
-            real_h = self.real_heights.get(target_name, 0.5) # Si no sabemos la altura, asumimos 50cm
-            distance = (self.F_Y * real_h) / pixel_height
-            
-            self.get_logger().info(f"¡{target_name} detectado! Distancia aprox: {distance:.2f} m")
-            
-            # NOTA: Aquí deberías aplicar trigonometría para sumar la posición 
-            # del robot + esta distancia. Por ahora, regresaremos la distancia directa en X
-            # asumiendo que el robot mira al frente.
-            
-            pose = PoseStamped()
-            pose.header.frame_id = "map"
-            pose.pose.position.x = distance 
-            pose.pose.position.y = 0.0 # Aproximación
-            pose.pose.orientation.w = 1.0
-            
-            response.pose = pose
+        if object_name in self.fallback_positions:
+            self.get_logger().info(f"Enviando coordenadas de: {object_name}")
             response.success = True
+            response.pose.pose.position.x = float(self.fallback_positions[object_name][0])
+            response.pose.pose.position.y = float(self.fallback_positions[object_name][1])
+            response.pose.pose.orientation.w = 1.0 
             return response
-            
         else:
-            self.get_logger().warn(f"No veo '{target_name}'. Usando PLAN B (Posición Predeterminada).")
-            # PLAN B
-            if target_name in self.fallback_positions:
-                x, y = self.fallback_positions[target_name]
-                pose = PoseStamped()
-                pose.header.frame_id = "map"
-                pose.pose.position.x = float(x)
-                pose.pose.position.y = float(y)
-                pose.pose.orientation.w = 1.0
-                
-                response.pose = pose
-                response.success = True
-                return response
-                
+            self.get_logger().error("Objeto no encontrado en el Plan B.")
             response.success = False
             return response
 
