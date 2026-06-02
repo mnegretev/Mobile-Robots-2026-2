@@ -19,9 +19,9 @@
   <xacro:arg name="ros2_control_plugin" default="uf_robot_hardware/UFRobotSystemHardware"/>
   <xacro:arg name="ros2_control_params" default=""/>
 
-  <xacro:arg name="add_realsense_d435i" default="false"/>
+  <xacro:arg name="add_realsense_d435i" default="true"/>
   <xacro:arg name="add_d435i_links" default="true"/>
-  <xacro:arg name="use_gazebo_camera" default="false"/>
+  <xacro:arg name="use_gazebo_camera" default="true"/>
 
   <xacro:arg name="add_other_geometry" default="false"/>
   <xacro:arg name="geometry_type" default="box"/>
