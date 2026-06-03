@@ -1,12 +1,5 @@
-#
 # MOBILE ROBOTS - FI-UNAM, 2026-2
 # MAP INFLATION AND COST MAPS
-#
-# Instructions:
-# Write the code necesary to get a cost map given an occupancy grid map and a cost radius.
-# Complete the code necessary to inflate the obstacles given an occupancy grid map and
-# a number of cells to inflate.
-#
 
 import rclpy
 from rclpy.node import Node
@@ -22,16 +15,11 @@ class CostMapNode(Node):
         self.get_logger().debug("Inflating map by " + str(inflation_cells) + " cells")
         inflated = numpy.copy(static_map)
         [height, width] = static_map.shape
-        #
-        # TODO:
-        # Write the code necessary to inflate the obstacles in the map a radius
-        # given by 'inflation_cells' (expressed in number of cells)
-        # Map is given in 'static_map' as a bidimensional numpy array.
-        # Consider as occupied cells all cells with an occupation value greater than 50
-        #
-        for i in range(len(static_map)):
-            for j in range(len(static_map[0])):
-                if(static_map[i][j] == 100):
+        
+        for i in range(height):
+            for j in range(width):
+                # Se considera obstáculo cualquier celda con ocupación mayor a 50
+                if static_map[i, j] > 50:
                     for r in range(-inflation_cells, inflation_cells + 1):
                         for c in range(-inflation_cells, inflation_cells + 1):
                             ri = min(height - 1, max(0, i + r))
@@ -43,25 +31,7 @@ class CostMapNode(Node):
         self.get_logger().debug("Getting cost map with " + str(cost_radius) + " cells")
         cost_map = numpy.copy(static_map)
         [height, width] = static_map.shape
-        #
-        # TODO:
-        # Write the code necessary to calculate a cost map for the given map.
-        # To calculate cost, consider as example the following map:    
-        # [[ 0 0 0 0 0 0]
-        #  [ 0 X 0 0 0 0]
-        #  [ 0 X X 0 0 0]
-        #  [ 0 X X 0 0 0]
-        #  [ 0 X 0 0 0 0]
-        #  [ 0 0 0 X 0 0]]
-        # Where occupied cells 'X' have a value of 100 and free cells have a value of 0.
-        # Cost is an integer indicating how near cells and obstacles are:
-        # [[ 3 3 3 2 2 1]
-        #  [ 3 X 3 3 2 1]
-        #  [ 3 X X 3 2 1]
-        #  [ 3 X X 3 2 2]
-        #  [ 3 X 3 3 3 2]
-        #  [ 3 3 3 X 3 2]]
-        # Cost_radius indicate the number of cells around obstacles with costs greater than zero.
+
         for i in range(height):
             for j in range(width):
                 if static_map[i, j] > 50:
@@ -70,7 +40,7 @@ class CostMapNode(Node):
                             if (i + k1) < 0 or (i + k1) >= height or (j + k2) < 0 or (j + k2) >= width:
                                 continue
                             cost_val = cost_radius - max(abs(k1), abs(k2)) + 1
-                            cost_map[i + k1, j + k2] = max(cost_map[i + k1, j + k2], cost_val)
+                            cost_map[i + k1, j + k2] = max(int(cost_map[i + k1, j + k2]), int(cost_val))
         return cost_map
 
     def callback_inflated_map(self, request, response):
@@ -82,27 +52,39 @@ class CostMapNode(Node):
         return response
 
     def callback_timer(self):
+        # CONTROL DE SEGURIDAD: Si el mapa estático aún no responde o la resolución es cero, abortamos el ciclo
+        if not self.map_static or self.map_static.info.resolution == 0.0:
+            self.get_logger().warn("⏳ Esperando datos válidos del servidor de mapas para evitar división por cero...")
+            return
+
         self.map_info   = self.map_static.info
         self.map_width  = self.map_info.width
         self.map_height = self.map_info.height
         self.map_res    = self.map_info.resolution
+        
         self.map_data = numpy.reshape(numpy.asarray(self.map_static.data, dtype='int'), (self.map_height, self.map_width))
+        
         inflation_radius  = self.get_parameter('inflation_radius').get_parameter_value().double_value
-        inflated_map_data = self.get_inflated_map(self.map_data, round(inflation_radius/self.map_res))
+        inflated_map_data = self.get_inflated_map(self.map_data, int(round(inflation_radius/self.map_res)))
         inflated_map_data = numpy.ravel(numpy.reshape(inflated_map_data, (self.map_width*self.map_height, 1)))
+        
         cost_radius  = self.get_parameter('cost_radius').get_parameter_value().double_value
-        cost_map_data = self.get_cost_map(self.map_data, round(cost_radius/self.map_res))
+        cost_map_data = self.get_cost_map(self.map_data, int(round(cost_radius/self.map_res)))
         cost_map_data = numpy.ravel(numpy.reshape(cost_map_data, (self.map_width*self.map_height, 1)))
-        self.inflated_map = OccupancyGrid(info=self.map_info, data=inflated_map_data)
+        
+        inflated_map_data_int = [int(x) for x in inflated_map_data]
+        cost_map_data_int = [int(x) for x in cost_map_data]
+
+        self.inflated_map = OccupancyGrid(info=self.map_info, data=inflated_map_data_int)
         self.inflated_map.header.frame_id = "map"
         self.inflated_map.header.stamp = self.get_clock().now().to_msg()
         self.pub_inflated_map.publish(self.inflated_map)
-        self.cost_map = OccupancyGrid(info=self.map_info, data=cost_map_data)
+        
+        self.cost_map = OccupancyGrid(info=self.map_info, data=cost_map_data_int)
         self.cost_map.header.frame_id = "map"
         self.cost_map.header.stamp = self.get_clock().now().to_msg()
         self.pub_cost_map.publish(self.cost_map)
         return
-
     def __init__(self):
         super().__init__("cost_map_node")
         self.get_logger().info("INITIALIZING MAP INFLATER AND COST MAP NODE - " + FULL_NAME)
@@ -117,8 +99,11 @@ class CostMapNode(Node):
         response = future.result()
         self.map_static = response.map
         self.get_logger().info("Got static map.")
-        self.declare_parameter('inflation_radius', 0.05)
-        self.declare_parameter('cost_radius', 0.05)
+        
+        # --- AJUSTE DE MÁRGENES DE SEGURIDAD (Cambio de 0.05 a 0.35 metros) ---
+        self.declare_parameter('inflation_radius', 0.35)
+        self.declare_parameter('cost_radius', 0.35)
+        
         self.timer = self.create_timer(1.0, self.callback_timer)
         self.get_clock().sleep_for(Duration(seconds=2.0))
         self.srv_inflate_map  = self.create_service(GetMap, '/get_inflated_map', self.callback_inflated_map)

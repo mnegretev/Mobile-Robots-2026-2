@@ -29,9 +29,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'motion_planner = motion_planning.motion_planner:main',
-            'ros_basics_solved = motion_planning.ros_basics_solved:main',
-            'ros_basics = motion_planning.ros_basics:main'
+        'motion_planner = motion_planning.motion_planner:main',
+        'voice_commander = motion_planning.voice_navigation_bridge:main',
         ],
     },
 )

@@ -1,5 +1,6 @@
 # MOBILE ROBOTS - FI-UNAM, 2026-2
 # RAPIDLY EXPLORING RANDOM TREES - TAREA 04
+
 import rclpy
 from rclpy.node import Node
 from rclpy.time import Time, Duration
@@ -7,7 +8,6 @@ from geometry_msgs.msg import PoseStamped, Pose, Point
 from visualization_msgs.msg import Marker
 from nav_msgs.msg import Path
 from nav_msgs.srv import *
-from builtin_interfaces.msg import Duration
 import numpy
 import math
 import csv
@@ -92,7 +92,10 @@ class RRTNode(Node):
         intentos_por_config = 100 
         resultados = []
 
-        self.get_logger().info(f"Iniciando experimentos: {intentos_por_config} intentos por configuración...")
+        self.get_logger().info(f"Iniciando experimentos RRT: {intentos_por_config} intentos por configuración...")
+
+        last_successful_tree = None
+        last_successful_path = []
 
         for e in epsilons:
             for n in max_ns:
@@ -101,27 +104,54 @@ class RRTNode(Node):
                     start_t = self.get_clock().now()
                     tree, path = self.rrt(sx, sy, gx, gy, self.grid_map, e, n)
                     end_t = self.get_clock().now()
+                    
                     if len(path) > 0:
                         exitos_acumulados += 1
                         tiempos_acumulados += (end_t.nanoseconds - start_t.nanoseconds)/1e6
+                        last_successful_tree = tree
+                        last_successful_path = path
                 
                 promedio_ms = tiempos_acumulados / exitos_acumulados if exitos_acumulados > 0 else 0.0
                 resultados.append([gx, gy, e, n, exitos_acumulados, intentos_por_config, promedio_ms])
                 self.get_logger().info(f"e={e}, N={n} -> Éxitos: {exitos_acumulados}/{intentos_por_config}")
 
+        # Escritura de métricas
         with open('resultados_rrt_oscar.csv', 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(['Meta_X', 'Meta_Y', 'Epsilon', 'Max_N', 'Veces_Exito', 'Total_Intentos', 'Tiempo_Promedio_ms'])
             writer.writerows(resultados)
+        self.get_logger().info("Tabla guardada exitosamente en resultados_rrt_oscar.csv.")
         
-        self.get_logger().info("Tabla de 100 intentos guardada exitosamente.")
-        self.msg_path = Path()
+        # --- RECONSTRUCCIÓN CON GARANTÍA DE FRAME ---
+        path_msg = Path()
+        path_msg.header.stamp = self.get_clock().now().to_msg()
+        path_msg.header.frame_id = "map"
+
+        if len(last_successful_path) > 0:
+            for pt in last_successful_path:
+                pose = PoseStamped()
+                pose.header.stamp = path_msg.header.stamp
+                pose.header.frame_id = "map"
+                pose.pose.position.x = float(pt[0])
+                pose.pose.position.y = float(pt[1])
+                pose.pose.position.z = 0.0
+                pose.pose.orientation.w = 1.0
+                path_msg.poses.append(pose)
+            
+            self.msg_path = path_msg
+            if last_successful_tree:
+                self.msg_tree = self.get_tree_marker(last_successful_tree)
+            self.get_logger().info(f"🚀 Enviando ruta real calculada con {len(self.msg_path.poses)} puntos.")
+        else:
+            self.get_logger().warn("⚠️ Ninguna configuración de RRT logró llegar al objetivo.")
+
         resp.plan = self.msg_path
         return resp
 
     def get_tree_marker(self, tree):
         mrk = Marker()
-        mrk.header.stamp, mrk.header.frame_id = self.get_clock().now().to_msg(), "map"
+        mrk.header.stamp = self.get_clock().now().to_msg()
+        mrk.header.frame_id = "map"
         mrk.ns, mrk.id, mrk.type, mrk.action = "path_planning", 0, Marker.LINE_LIST, Marker.ADD
         mrk.color.r, mrk.color.g, mrk.color.b, mrk.color.a = 0.7, 0.4, 1.0, 0.9
         mrk.scale.x, mrk.pose.orientation.w = 0.03, 1.0
@@ -129,8 +159,8 @@ class RRTNode(Node):
         while len(S) > 0:
             n = S.pop()
             for c in n.children:
-                mrk.points.append(Point(x=n.x, y=n.y, z=0.0))
-                mrk.points.append(Point(x=c.x, y=c.y, z=0.0))
+                mrk.points.append(Point(x=float(n.x), y=float(n.y), z=0.0))
+                mrk.points.append(Point(x=float(c.x), y=float(c.y), z=0.0))
                 S.append(c)
         return mrk
 
@@ -140,7 +170,13 @@ class RRTNode(Node):
         return f.result().map
 
     def callback_timer(self):
-        self.pub_path.publish(self.msg_path); self.pub_tree.publish(self.msg_tree)
+        # Actualizamos las estampas de tiempo antes de publicar para evitar desfasamientos con Gazebo
+        ahora = self.get_clock().now().to_msg()
+        self.msg_path.header.stamp = ahora
+        self.msg_tree.header.stamp = ahora
+        
+        self.pub_path.publish(self.msg_path)
+        self.pub_tree.publish(self.msg_tree)
 
     def __init__(self):
         super().__init__("rrt_node")
@@ -149,10 +185,22 @@ class RRTNode(Node):
         while not self.clt_inflated_map.wait_for_service(timeout_sec=1.0):
             self.get_logger().info('Esperando servicio de mapa...')
         self.grid_map = self.get_inflated_map()
+        
+        # --- PARCHE DE INICIALIZACIÓN BLINDADA ---
+        self.msg_path = Path()
+        self.msg_path.header.frame_id = "map"
+        
+        # Creamos un marker vacío válido con frame_id asignado desde el inicio
+        self.msg_tree = Marker()
+        self.msg_tree.header.frame_id = "map"
+        self.msg_tree.type = Marker.LINE_LIST
+        self.msg_tree.action = Marker.ADD
+        self.msg_tree.pose.orientation.w = 1.0
+        
         self.srv_plan_path = self.create_service(GetPlan, '/path_planning/plan_path', self.callback_rrt)
         self.pub_path = self.create_publisher(Path, '/path_planning/path', 10)
         self.pub_tree = self.create_publisher(Marker, '/path_planning/rrt_tree', 10)
-        self.msg_path, self.msg_tree = Path(), self.get_tree_marker(TreeNode(0,0))
+        
         self.timer = self.create_timer(0.5, self.callback_timer)
 
 def main(args=None):
