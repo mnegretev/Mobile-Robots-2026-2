@@ -1,0 +1,35 @@
+locations:
+  cama:
+    x: -2.55
+    y: 2.173
+    yaw: 1.648
+
+  refrigerador:
+    x: 10.061
+    y: 0.546
+    yaw: -0.128
+
+  sillon:
+    x: 2.965
+    y: 1.014
+    yaw: -2.329
+
+  pesas:
+    x: 5.396
+    y: 3.847
+    yaw: 2.252
+
+  tele:
+    x: -2.059
+    y: -0.267
+    yaw: 1.432
+
+  pelota:
+    x: -4.015
+    y: -1.878
+    yaw: -2.655
+
+  puerta:
+    x: 7.954
+    y: -3.284
+    yaw: -1.531

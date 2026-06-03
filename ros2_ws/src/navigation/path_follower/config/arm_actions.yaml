@@ -1,0 +1,120 @@
+joint_names:
+  - joint1
+  - joint2
+  - joint3
+  - joint4
+  - joint5
+  - joint6
+
+poses:
+  arm_home:
+    joints: [0.0, 0.088, 0.050, 0.0, 0.0, 0.0]
+
+  # -------------------------
+  # Agarrar objeto abajo
+  # -------------------------
+  reach_low_pre:
+    joints: [0.0, -0.30, 0.050, 0.0, 0.20, 0.0]
+
+  reach_low:
+    joints: [0.0, -0.8, 0.050, 0.0, 0.75, 0.0]
+
+  grab_low:
+    joints: [0.0, -0.8, 0.050, 0.0, 0.75, -0.50]
+
+  # -------------------------
+  # Agarrar objeto en medio
+  # -------------------------
+  reach_mid_pre:
+    joints: [0.0, -0.30, 0.100, 0.2, 0.10, 0.0]
+
+  reach_mid:
+    joints: [0.0, -1.00, 0.100, 0.5, 0.60, 0.0]
+
+  grab_mid:
+    joints: [0.0, -1.00, 0.100, 0.5, 0.60, -0.50]
+
+  # -------------------------
+  # Agarrar objeto arriba
+  # -------------------------
+  reach_high_pre:
+    joints: [0.0, -0.15, 0.250, 0.0, -0.10, 0.0]
+
+  reach_high:
+    joints: [0.0, -0.30, 0.350, 0.0, -0.20, 0.0]
+
+  grab_high:
+    joints: [0.0, -0.30, 0.350, 0.0, -0.20, -0.50]
+
+  # -------------------------
+  # Saludar
+  # -------------------------
+  wave_start:
+    joints: [0.0, -1.25, 0.200, 0.0, 0.00, 0.0]
+
+  wave_left:
+    joints: [-0.35, -1.25, 0.200, 0.0, 0.30, 0.0]
+
+  wave_right:
+    joints: [0.35, -1.25, 0.200, 0.0, -0.30, 0.0]
+
+actions:
+  agarrar_abajo:
+    - pose: arm_home
+      duration: 1.5
+    - pose: reach_low_pre
+      duration: 2.0
+    - pose: reach_low
+      duration: 2.0
+    - pose: grab_low
+      duration: 1.0
+    - pose: reach_low_pre
+      duration: 2.0
+    - pose: arm_home
+      duration: 2.0
+
+  agarrar_medio:
+    - pose: arm_home
+      duration: 1.5
+    - pose: reach_mid_pre
+      duration: 2.0
+    - pose: reach_mid
+      duration: 2.0
+    - pose: grab_mid
+      duration: 1.0
+    - pose: reach_mid_pre
+      duration: 2.0
+    - pose: arm_home
+      duration: 2.0
+
+  agarrar_arriba:
+    - pose: arm_home
+      duration: 1.5
+    - pose: reach_high_pre
+      duration: 2.0
+    - pose: reach_high
+      duration: 2.0
+    - pose: grab_high
+      duration: 1.0
+    - pose: reach_high_pre
+      duration: 2.0
+    - pose: arm_home
+      duration: 2.0
+
+  saludar:
+    - pose: arm_home
+      duration: 1.5
+    - pose: wave_start
+      duration: 2.0
+    - pose: wave_left
+      duration: 1.0
+    - pose: wave_right
+      duration: 1.0
+    - pose: wave_left
+      duration: 1.0
+    - pose: wave_right
+      duration: 1.0
+    - pose: wave_start
+      duration: 1.0
+    - pose: arm_home
+      duration: 2.0
