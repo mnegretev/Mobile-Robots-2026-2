@@ -40,7 +40,7 @@
       <joint name="${prefix}camera_link_joint" type="fixed">
         <parent link="${prefix}link_eef" />
         <child link="${prefix}camera_link" />
-        <origin xyz="0.06746 -0.0175 0.0237" rpy="${M_PI} ${-M_PI/2} 0" />
+        <origin xyz="0.08746 -0.0175 0.0237" rpy="${M_PI} ${-M_PI/2} 0" />
       </joint>
 
       <joint name="${prefix}camera_depth_joint" type="fixed">

@@ -41,6 +41,7 @@
     robot_sn:='' 
     mesh_suffix:='stl' 
     kinematics_suffix:=''
+    is_ros2:=true
     "
     > 
 
