@@ -75,6 +75,8 @@ def launch_setup(context, *args, **kwargs):
             add_gripper=add_gripper,
             add_vacuum_gripper=add_vacuum_gripper,
             add_bio_gripper=add_bio_gripper,
+            add_d435i_links=add_d435i_links,
+            add_realsense_d435i=add_realsense_d435i
         )
         .robot_description(file_path=urdf_file)
         .robot_description_semantic(file_path=srdf_file)
