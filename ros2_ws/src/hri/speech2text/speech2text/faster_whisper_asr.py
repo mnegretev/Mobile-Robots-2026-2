@@ -12,7 +12,7 @@ from std_msgs.msg import String
 #
 CHUNK = 1024
 FORMAT = pyaudio.paInt16
-CHANNELS = 2
+CHANNELS = 1
 RATE = 44100
 RECORD_SECONDS = 5
 WAVE_OUTPUT_FILENAME = "/dev/shm/recorder_audio.wav"
@@ -22,7 +22,7 @@ class FasterWhisperNode(Node):
         super().__init__("faster_whisper_node")
         self.get_logger().info("INITIALIZING FASTER WHISPER NODE")
         self.model_size = "small"
-        self.pwr_threshold = 0.05
+        self.pwr_threshold = 0.02
         self.pub_recognized = self.create_publisher(String, '/sp_rec/recognized', 1)
 
     def spin(self):
@@ -38,15 +38,15 @@ class FasterWhisperNode(Node):
             self.get_logger().info("Waiting for audio with enough power")
             pwr = 0.0;
             while pwr < self.pwr_threshold and rclpy.ok():
-                data = stream.read(CHUNK)
+                data = stream.read(CHUNK, exception_on_overflow=False)
                 arr = numpy.frombuffer(data, dtype=numpy.int16)/32768.0
                 pwr = numpy.mean(arr**2)
 
             self.get_logger().info("Audio detected. Starting to record...")
             no_audio_counter = 0
             frames.append(data)
-            while no_audio_counter < 20 and rclpy.ok():
-                data = stream.read(CHUNK)
+            while no_audio_counter < 8 and rclpy.ok():
+                data = stream.read(CHUNK, exception_on_overflow=False)
                 frames.append(data)
                 arr = numpy.frombuffer(data, dtype=numpy.int16)/32768.0
                 pwr = numpy.mean(arr**2)
