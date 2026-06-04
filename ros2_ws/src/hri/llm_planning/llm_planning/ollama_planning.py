@@ -27,7 +27,7 @@ class OllamaPlanningNode(Node):
 
     def send_prompt(self, msg):
         self.msg_history.append({"role": "user", "content": msg})
-        resp = requests.post(self.url_api, json={"model": "llama3", "messages": self.msg_history, "stream":False, "options":{"num_ctx":8192}})
+        resp = requests.post(self.url_api, json={"model": "llama3.2:3b", "messages": self.msg_history, "stream":False, "options":{"num_ctx":8192}})
         self.msg_history.append(resp.json()["message"])
 
     def callback_prompt(self, msg):
