@@ -41,6 +41,10 @@ class AStarNode(Node):
         else:
             adjacents = [[1,0,1],[0,1,1],[-1,0,1],[0,-1,1]]
 
+        # Peso del cost_map: mas alto = rutas mas pegadas a obstaculos,
+        # mas bajo = rutas mas centradas (se alejan de las paredes).
+        cost_weight = self.get_parameter('cost_weight').get_parameter_value().double_value
+
         heapq.heappush(open_list, (0, [start_r, start_c]))
         in_open_list[start_r, start_c] = True
         g_values    [start_r, start_c] = 0
@@ -83,8 +87,9 @@ class AStarNode(Node):
                 # Discard if occupied (100), unknown (-1), or already in closed list
                 if grid_map[r, c] != 0 or in_closed_list[r, c]:
                     continue
-                # g = g_current + movement_cost + cell_cost (normalised 0-1)
-                g = g_values[row, col] + move_cost + cost_map[r, c] / 100.0
+                # g = g_current + movement_cost + (cell_cost * peso)
+                # El peso controla que tanto el a_star evita acercarse a obstaculos.
+                g = g_values[row, col] + move_cost + cost_map[r, c] * cost_weight
                 # Heuristic: Euclidean distance to goal
                 h = math.sqrt((goal_r - r)**2 + (goal_c - c)**2)
                 # f = g + h
@@ -250,6 +255,7 @@ class AStarNode(Node):
         self.declare_parameter('diagonals', False)
         self.declare_parameter('inflation_radius', 0.2)  # ── NUEVO
         self.declare_parameter('cost_radius', 0.1)        # ── NUEVO
+        self.declare_parameter('cost_weight', 0.1)        # ── NUEVO: peso del cost_map en el costo del A*
         self.srv_plan_path = self.create_service(GetPlan, '/path_planning/plan_path', self.callback_a_star)
         self.pub_path = self.create_publisher(Path, '/path_planning/path', 10)
         self.msg_path = Path()
