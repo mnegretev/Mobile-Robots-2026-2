@@ -362,7 +362,7 @@
       <sensor name="front_camera" type="camera">
         <always_on>true</always_on>
         <visualize>true</visualize>
-        <update_rate>15</update_rate>
+        <update_rate>10</update_rate>
         <topic>front_camera/image</topic>
         <gz_frame_id>camera_front_link</gz_frame_id>
         <camera>

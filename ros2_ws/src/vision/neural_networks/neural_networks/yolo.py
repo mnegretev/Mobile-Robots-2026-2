@@ -61,7 +61,7 @@ class YoloNode(Node):
         self.declare_parameter('model_path', model_path)
         print(f'Initializing yolo model from path :{model_path}')
         self.model = YOLO(model_path)
-        self.model.to('cuda')
+        self.model.to('cpu')
         print("Model initialized succesfully")
         self.sub_img = self.create_subscription(Image, '/front_camera/image_raw', self.callback_img, 1)
         self.pub_det = self.create_publisher(String, '/yolo/detections', 1)

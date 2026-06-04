@@ -2,6 +2,7 @@ import rclpy
 import requests
 import json
 import math
+import time
 from rclpy.node import Node
 from std_msgs.msg import String, Bool
 from geometry_msgs.msg import PoseStamped, Twist
@@ -10,8 +11,7 @@ from sensor_msgs.msg import LaserScan
 NAME = "DOMINGUEZ PALACIOS JESUS ALEJANDRO y JONATHAN"
 
 # ====== ZONAS APROXIMADAS DE OBJETOS (coordenada x,y en 'map') ======
-# PROVISIONALES: ajustar con Publish Point en RViz sobre cada objeto.
-# La clave es el nombre que usa el LLM; "yolo" es la clase COCO a buscar.
+# PROVISIONALES: ajustar con Publish Point en RViz.
 ZONAS = {
     "sofa":         {"xy": (-2.00, 1.00),  "yolo": "couch"},
     "refrigerador": {"xy": (1.10, 2.70),   "yolo": "refrigerator"},
@@ -21,6 +21,16 @@ ZONAS = {
     "persona":      {"xy": (0.00, 3.00),   "yolo": "person"},
     "pelota":       {"xy": (2.00, 0.00),   "yolo": "sports ball"},
 }
+
+# Estados de la maquina
+IDLE = 0
+NAVEGANDO = 1
+BUSCANDO = 2
+
+# Parametros de busqueda visual
+VEL_GIRO = 0.3          # rad/s al girar buscando
+TOL_CENTRO = 0.12       # |cx_norm| < esto = centrado
+TIMEOUT_BUSQUEDA = 25.0 # segundos max girando antes de rendirse
 
 SYSTEM_PROMPT = """Eres el cerebro de un robot movil de servicio en una casa.
 
@@ -42,7 +52,7 @@ FORMATOS:
 2. Si pide algo imposible, pregunta, o lugar desconocido:
    {"accion": "decir", "texto": "Lo siento, no puedo volar"}
 
-Usa exactamente estos nombres de lugares: sofa, refrigerador, television, silla, comoda, persona, pelota.
+Usa exactamente estos nombres: sofa, refrigerador, television, silla, comoda, persona, pelota.
 Responde SIEMPRE en espanol en el campo texto. Solo JSON."""
 
 
@@ -54,14 +64,15 @@ class SMPlannerNode(Node):
         self.ollama_url = "http://localhost:11434/api/chat"
         self.model = "llama3.2:3b"
 
+        self.estado = IDLE
         self.cola_destinos = []
-        self.navegando = False
         self.new_command = None
+        self.objetivo_yolo = None      # clase YOLO que busca ahora
+        self.t_inicio_busqueda = 0.0
 
         # Suscripciones
         self.create_subscription(String, '/sp_rec/recognized', self.cb_voz, 1)
         self.create_subscription(Bool, '/navigation/goal_reached', self.cb_llegada, 1)
-        # (Capa 2/3) detecciones de YOLO y laser - de momento solo se guardan
         self.create_subscription(String, '/yolo/detections', self.cb_yolo, 1)
         self.create_subscription(LaserScan, '/scan', self.cb_scan, 1)
 
@@ -70,31 +81,28 @@ class SMPlannerNode(Node):
         self.pub_tts = self.create_publisher(String, '/tts_query', 1)
         self.pub_cmd = self.create_publisher(Twist, '/cmd_vel', 1)
 
-        # Estado de sensores (para Capas 2 y 3)
         self.detecciones = []
         self.dist_frente = 99.0
 
-        self.create_timer(0.2, self.ciclo)
+        self.create_timer(0.1, self.ciclo)
         self.get_logger().info("SM Planner listo. Esperando comandos de voz...")
 
     def cb_voz(self, msg):
         texto = msg.data.strip()
         if len(texto) < 2:
             return
-        if self.navegando:
+        if self.estado != IDLE:
             self.get_logger().info("Ocupado, ignoro: " + texto)
             return
         self.get_logger().info("Comando recibido: " + texto)
         self.new_command = texto
 
     def cb_llegada(self, msg):
-        if msg.data and self.navegando:
-            self.get_logger().info("Zona alcanzada.")
-            self.navegando = False
-            if self.cola_destinos:
-                self.enviar_siguiente_destino()
-            else:
-                self.hablar("He llegado.")
+        # Llego a la zona -> pasar a BUSCAR el objeto con la camara
+        if msg.data and self.estado == NAVEGANDO:
+            self.get_logger().info("Zona alcanzada. Iniciando busqueda visual...")
+            self.estado = BUSCANDO
+            self.t_inicio_busqueda = time.time()
 
     def cb_yolo(self, msg):
         try:
@@ -103,18 +111,68 @@ class SMPlannerNode(Node):
             self.detecciones = []
 
     def cb_scan(self, msg):
-        # distancia al frente: indice central del array
         n = len(msg.ranges)
         if n > 0:
             centro = msg.ranges[n // 2]
             if not math.isinf(centro) and not math.isnan(centro):
                 self.dist_frente = centro
 
+    def detener_robot(self):
+        self.pub_cmd.publish(Twist())  # todo en cero
+
+    def buscar_objetivo_en_detecciones(self):
+        # Devuelve cx_norm del objetivo si lo ve, si no None
+        for d in self.detecciones:
+            if d.get("clase") == self.objetivo_yolo:
+                return d.get("cx_norm", 0.0)
+        return None
+
     def ciclo(self):
-        if self.new_command is not None and not self.navegando:
-            comando = self.new_command
-            self.new_command = None
-            self.procesar_comando(comando)
+        if self.estado == IDLE:
+            if self.new_command is not None:
+                comando = self.new_command
+                self.new_command = None
+                self.procesar_comando(comando)
+
+        elif self.estado == BUSCANDO:
+            self.ciclo_busqueda()
+
+    def ciclo_busqueda(self):
+        # Timeout: si tarda mucho, rendirse
+        if time.time() - self.t_inicio_busqueda > TIMEOUT_BUSQUEDA:
+            self.detener_robot()
+            self.hablar("No encuentro el objeto.")
+            self.terminar_destino_actual()
+            return
+
+        cx = self.buscar_objetivo_en_detecciones()
+        cmd = Twist()
+        if cx is None:
+            # No lo veo: girar lentamente para buscar
+            cmd.angular.z = VEL_GIRO
+            self.pub_cmd.publish(cmd)
+        else:
+            # Lo veo: girar para centrarlo
+            if abs(cx) < TOL_CENTRO:
+                # Centrado -> (Capa 3 sera avanzar; por ahora paramos)
+                self.detener_robot()
+                self.hablar("Veo el objetivo, esta centrado.")
+                self.terminar_destino_actual()
+            else:
+                # girar hacia el objeto: si cx>0 (derecha) -> giro negativo
+                cmd.angular.z = -0.5 * cx
+                # limitar velocidad
+                if cmd.angular.z > VEL_GIRO: cmd.angular.z = VEL_GIRO
+                if cmd.angular.z < -VEL_GIRO: cmd.angular.z = -VEL_GIRO
+                self.pub_cmd.publish(cmd)
+
+    def terminar_destino_actual(self):
+        # Pasa al siguiente destino de la cola, o vuelve a IDLE
+        if self.cola_destinos:
+            self.enviar_siguiente_destino()
+        else:
+            self.estado = IDLE
+            self.hablar("Tarea completada.")
 
     def procesar_comando(self, comando):
         respuesta = self.consultar_llm(comando)
@@ -138,6 +196,7 @@ class SMPlannerNode(Node):
 
     def enviar_siguiente_destino(self):
         lugar = self.cola_destinos.pop(0)
+        self.objetivo_yolo = ZONAS[lugar]["yolo"]
         x, y = ZONAS[lugar]["xy"]
         goal = PoseStamped()
         goal.header.frame_id = "map"
@@ -146,8 +205,8 @@ class SMPlannerNode(Node):
         goal.pose.position.y = float(y)
         goal.pose.orientation.w = 1.0
         self.pub_goal.publish(goal)
-        self.navegando = True
-        self.get_logger().info(f"Navegando a zona de '{lugar}' ({x}, {y})")
+        self.estado = NAVEGANDO
+        self.get_logger().info(f"Navegando a zona de '{lugar}' ({x}, {y}), buscare '{self.objetivo_yolo}'")
 
     def hablar(self, texto):
         msg = String()
