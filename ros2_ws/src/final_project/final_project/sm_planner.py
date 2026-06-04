@@ -4,46 +4,46 @@ import json
 import math
 from rclpy.node import Node
 from std_msgs.msg import String, Bool
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Twist
+from sensor_msgs.msg import LaserScan
 
-# ================== NOMBRE PARA EL LOG (estilo Negrete) ==================
 NAME = "DOMINGUEZ PALACIOS JESUS ALEJANDRO y JONATHAN"
 
-# ================== DICCIONARIO DE LUGARES CONOCIDOS ==================
-# Coordenadas (x, y) en el marco 'map'. Sacar con "Publish Point" en RViz.
-# TODO: ajustar estas coordenadas a los muebles reales de house.world
-PLACES = {
-    "refrigerador": (1.10, 2.70),
-    "sofa":         (-2.00, 1.00),
-    "cama":         (3.50, -1.50),
-    "cocina":       (1.50, 2.50),
-    "sala":         (-1.50, 0.50),
+# ====== ZONAS APROXIMADAS DE OBJETOS (coordenada x,y en 'map') ======
+# PROVISIONALES: ajustar con Publish Point en RViz sobre cada objeto.
+# La clave es el nombre que usa el LLM; "yolo" es la clase COCO a buscar.
+ZONAS = {
+    "sofa":         {"xy": (-2.00, 1.00),  "yolo": "couch"},
+    "refrigerador": {"xy": (1.10, 2.70),   "yolo": "refrigerator"},
+    "television":   {"xy": (0.50, 3.00),   "yolo": "tv"},
+    "silla":        {"xy": (-1.00, -1.00), "yolo": "chair"},
+    "comoda":       {"xy": (0.80, 2.50),   "yolo": "bench"},
+    "persona":      {"xy": (0.00, 3.00),   "yolo": "person"},
+    "pelota":       {"xy": (2.00, 0.00),   "yolo": "sports ball"},
 }
 
-# ================== PROMPT DE SISTEMA PARA EL LLM ==================
-# Define las capacidades y limitaciones del robot, y obliga a respuesta en JSON.
 SYSTEM_PROMPT = """Eres el cerebro de un robot movil de servicio en una casa.
 
-PUEDES:
-- Navegar a estos lugares conocidos: refrigerador, sofa, cama, cocina, sala.
-- Responder preguntas sobre ti mismo (de que estas hecho, que puedes hacer).
+PUEDES navegar a estos objetos/lugares conocidos:
+sofa, refrigerador, television, silla, comoda, persona, pelota.
 
 NO PUEDES (es imposible para ti):
 - Volar, nadar, saltar, subir escaleras.
 - Agarrar o levantar objetos pesados.
 - Salir de la casa o ir a lugares que no estan en tu lista.
-- Cocinar, limpiar, o tareas que requieran manos habiles.
+- Cocinar, limpiar.
 
-El usuario te dara una instruccion en lenguaje natural. Debes responder
+El usuario te dara una instruccion en lenguaje natural. Responde
 UNICAMENTE con un objeto JSON valido, sin texto adicional, sin markdown.
 
-FORMATOS DE RESPUESTA:
-1. Si pide ir a uno o varios lugares conocidos (en orden):
+FORMATOS:
+1. Si pide ir a uno o varios lugares conocidos (respeta el orden):
    {"accion": "ir", "lugares": ["refrigerador", "sofa"], "texto": "Voy al refrigerador y luego al sofa"}
-2. Si pide algo imposible, hace una pregunta, o pide un lugar desconocido:
+2. Si pide algo imposible, pregunta, o lugar desconocido:
    {"accion": "decir", "texto": "Lo siento, no puedo volar"}
 
-Responde SIEMPRE en espanol en el campo texto. Solo JSON, nada mas."""
+Usa exactamente estos nombres de lugares: sofa, refrigerador, television, silla, comoda, persona, pelota.
+Responde SIEMPRE en espanol en el campo texto. Solo JSON."""
 
 
 class SMPlannerNode(Node):
@@ -51,70 +51,81 @@ class SMPlannerNode(Node):
         super().__init__("sm_planner_node")
         self.get_logger().info("INITIALIZING FINAL PROJECT SM PLANNER - " + NAME)
 
-        # --- Conexion con Ollama ---
         self.ollama_url = "http://localhost:11434/api/chat"
         self.model = "llama3.2:3b"
 
-        # --- Estado interno ---
-        self.cola_destinos = []      # lista de lugares pendientes
-        self.navegando = False       # True mientras el robot va en camino
-        self.new_command = None      # comando de voz recibido
+        self.cola_destinos = []
+        self.navegando = False
+        self.new_command = None
 
-        # --- Suscripciones ---
+        # Suscripciones
         self.create_subscription(String, '/sp_rec/recognized', self.cb_voz, 1)
         self.create_subscription(Bool, '/navigation/goal_reached', self.cb_llegada, 1)
+        # (Capa 2/3) detecciones de YOLO y laser - de momento solo se guardan
+        self.create_subscription(String, '/yolo/detections', self.cb_yolo, 1)
+        self.create_subscription(LaserScan, '/scan', self.cb_scan, 1)
 
-        # --- Publicadores ---
+        # Publicadores
         self.pub_goal = self.create_publisher(PoseStamped, '/goal_pose', 1)
         self.pub_tts = self.create_publisher(String, '/tts_query', 1)
+        self.pub_cmd = self.create_publisher(Twist, '/cmd_vel', 1)
 
-        # --- Timer principal del ciclo ---
+        # Estado de sensores (para Capas 2 y 3)
+        self.detecciones = []
+        self.dist_frente = 99.0
+
         self.create_timer(0.2, self.ciclo)
         self.get_logger().info("SM Planner listo. Esperando comandos de voz...")
 
-    # ============ CALLBACK: llega texto de voz ============
     def cb_voz(self, msg):
         texto = msg.data.strip()
         if len(texto) < 2:
             return
         if self.navegando:
-            self.get_logger().info("Ocupado navegando, ignoro: " + texto)
+            self.get_logger().info("Ocupado, ignoro: " + texto)
             return
         self.get_logger().info("Comando recibido: " + texto)
         self.new_command = texto
 
-    # ============ CALLBACK: el robot llego al destino ============
     def cb_llegada(self, msg):
         if msg.data and self.navegando:
-            self.get_logger().info("Destino alcanzado.")
+            self.get_logger().info("Zona alcanzada.")
             self.navegando = False
-            # Si quedan mas destinos en la cola, manda el siguiente
             if self.cola_destinos:
                 self.enviar_siguiente_destino()
             else:
-                self.hablar("He llegado a mi destino final.")
+                self.hablar("He llegado.")
 
-    # ============ CICLO PRINCIPAL ============
+    def cb_yolo(self, msg):
+        try:
+            self.detecciones = json.loads(msg.data)
+        except Exception:
+            self.detecciones = []
+
+    def cb_scan(self, msg):
+        # distancia al frente: indice central del array
+        n = len(msg.ranges)
+        if n > 0:
+            centro = msg.ranges[n // 2]
+            if not math.isinf(centro) and not math.isnan(centro):
+                self.dist_frente = centro
+
     def ciclo(self):
         if self.new_command is not None and not self.navegando:
             comando = self.new_command
             self.new_command = None
             self.procesar_comando(comando)
 
-    # ============ PROCESAR: consulta al LLM y decide ============
     def procesar_comando(self, comando):
         respuesta = self.consultar_llm(comando)
         if respuesta is None:
             self.hablar("Lo siento, no entendi.")
             return
-
         accion = respuesta.get("accion", "decir")
         texto = respuesta.get("texto", "")
-
         if accion == "ir":
             lugares = respuesta.get("lugares", [])
-            # Filtra solo los lugares que conocemos
-            validos = [l for l in lugares if l in PLACES]
+            validos = [l for l in lugares if l in ZONAS]
             if not validos:
                 self.hablar("No conozco ese lugar.")
                 return
@@ -123,13 +134,11 @@ class SMPlannerNode(Node):
                 self.hablar(texto)
             self.enviar_siguiente_destino()
         else:
-            # accion == "decir" (pregunta, imposible, etc.)
             self.hablar(texto if texto else "No puedo hacer eso.")
 
-    # ============ ENVIAR SIGUIENTE DESTINO DE LA COLA ============
     def enviar_siguiente_destino(self):
         lugar = self.cola_destinos.pop(0)
-        x, y = PLACES[lugar]
+        x, y = ZONAS[lugar]["xy"]
         goal = PoseStamped()
         goal.header.frame_id = "map"
         goal.header.stamp = self.get_clock().now().to_msg()
@@ -138,16 +147,14 @@ class SMPlannerNode(Node):
         goal.pose.orientation.w = 1.0
         self.pub_goal.publish(goal)
         self.navegando = True
-        self.get_logger().info(f"Navegando a '{lugar}' ({x}, {y})")
+        self.get_logger().info(f"Navegando a zona de '{lugar}' ({x}, {y})")
 
-    # ============ HABLAR (publica en /tts_query) ============
     def hablar(self, texto):
         msg = String()
         msg.data = texto
         self.pub_tts.publish(msg)
         self.get_logger().info("Robot dice: " + texto)
 
-    # ============ CONSULTAR AL LLM (Ollama) ============
     def consultar_llm(self, comando):
         try:
             payload = {
