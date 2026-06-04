@@ -22,7 +22,7 @@ class FasterWhisperNode(Node):
         super().__init__("faster_whisper_node")
         self.get_logger().info("INITIALIZING FASTER WHISPER NODE")
         self.model_size = "small"
-        self.pwr_threshold = 0.05
+        self.pwr_threshold = 0.2
         self.pub_recognized = self.create_publisher(String, '/sp_rec/recognized', 1)
 
     def spin(self):
@@ -63,11 +63,16 @@ class FasterWhisperNode(Node):
             wf.writeframes(b''.join(frames))
             wf.close()
 
-            segments, info = model.transcribe(WAVE_OUTPUT_FILENAME, beam_size=5, language="zh")
+            segments, info = model.transcribe(WAVE_OUTPUT_FILENAME, beam_size=5, language="es")
             self.get_logger().info("Detected language '%s' with probability %f" % (info.language, info.language_probability))
             for segment in segments:
                 self.get_logger().info("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
-                self.pub_recognized.publish(String(data=segment.text))
+                text = segment.text.strip()
+                ignore = ["amara", "suscríbete", "subtítulos", "subtitulos", "suscribete", "comunidad", "iglesia", "Iglesia"]
+                if text and len(text) > 5 and not any(w in text.lower() for w in ignore):
+                    self.pub_recognized.publish(String(data=text))
+                else:
+                    self.get_logger().warn("Texto ignorado: " + text)
                 break
                     
             rclpy.spin_once(self, timeout_sec=0)

@@ -1,21 +1,22 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
-
+from ament_index_python.packages import get_package_share_directory
 import os
 import wave
 from piper.voice import PiperVoice
 from piper.config import SynthesisConfig
 
 TEST_TEXT = ". .  Amo el canto del cenzontle pájaro de 400 voces, amo el color del jade, y el enervante perfume de las flores, pero amo más a mi hermano, el hombre"
-AUDIO_BASH = "aplay \"tts_output.wav\""
+AUDIO_BASH = 'aplay "/dev/shm/tts_output.wav\"'
 
 class TTSSubscriber(Node):
 
     def __init__(self):
         super().__init__('text_to_speech_subscriber')
-        self.model = "/home/thedoctor/CLASES/MRSolutions/ros2_ws/src/hri/text2speech/text2speech/models/en_GB-southern_english_female-low.onnx"
-        self.config = "/home/thedoctor/CLASES/MRSolutions/ros2_ws/src/hri/text2speech/text2speech/models/en_GB-southern_english_female-low.onnx.json"
+        package_path = get_package_share_directory('text2speech')
+        self.model = os.path.join(package_path, "models/es_MX-claude-high.onnx")
+        self.config = os.path.join(package_path, "models/es_MX-claude-high.onnx.json")
         self.voice = PiperVoice.load(model_path=self.model,config_path=self.config)
         self.syn_config = SynthesisConfig(
             volume=0.5,  # half as loud
@@ -34,7 +35,7 @@ class TTSSubscriber(Node):
 
     def generate_speech(self,txt):
         # Generate speech with specific instructions
-        with wave.open("tts_output.wav", "wb") as wav_file:
+        with wave.open("/dev/shm/tts_output.wav", "wb") as wav_file:
             self.voice.synthesize_wav(txt, wav_file)
 
     def listener_callback(self, msg):

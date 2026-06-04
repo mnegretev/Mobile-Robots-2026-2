@@ -206,6 +206,10 @@ class PurePursuitNode(Node):
                 tol   = self.get_parameter('tol').get_parameter_value().double_value
                 self.get_logger().info("Following path with [v_max, w_max, alpha, beta, tol]="+str([v_max, w_max, alpha, beta, tol]))
                 path_points = [numpy.asarray([p.pose.position.x, p.pose.position.y]) for p in path.poses]
+                if len(path_points) == 0:
+                    self.get_logger().warn("Path vacio, esperando nuevo goal...")
+                    state = SM_INIT
+                    continue
                 self.pure_pursuit(path_points, alpha, beta, v_max, w_max, tol)
                 self.pub_cmd_vel.publish(Twist())
                 self.pub_goal_reached.publish(Bool(data=True))
