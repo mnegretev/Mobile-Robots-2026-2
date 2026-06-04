@@ -1,0 +1,49 @@
+================================================================
+PROYECTO FINAL - ROBOTS MÓVILES 2026-2
+================================================================
+
+ORDEN DE APERTURA DE TERMINALES
+================================================================
+
+
+----------------------------------------------------------------
+TERMINAL 1 — Simulación (Gazebo)
+----------------------------------------------------------------
+ros2 launch house_simul house_simul.launch.py
+
+Espera a que Gazebo cargue completamente antes de continuar.
+
+----------------------------------------------------------------
+TERMINAL 2 — Navegación (Mapa + AMCL + RViz)
+----------------------------------------------------------------
+ros2 launch motion_planning motion_planning_utils.launch.py
+
+----------------------------------------------------------------
+TERMINAL 3 — Mapa de costos
+----------------------------------------------------------------
+ros2 run path_planner cost_map --ros-args -p inflation_radius:=0.4 -p cost_radius:=0.8
+
+----------------------------------------------------------------
+TERMINAL 4 — Planificador de rutas (A*)
+----------------------------------------------------------------
+ros2 run path_planner a_star
+
+----------------------------------------------------------------
+TERMINAL 5 — Suavizado de rutas
+----------------------------------------------------------------
+ros2 run path_planner path_smoothing --ros-args -p w1:=0.6 -p w2:=0.1 -p steps:=10000
+
+----------------------------------------------------------------
+TERMINAL 6 — Seguidor de camino (Pure Pursuit)
+----------------------------------------------------------------
+ros2 run path_follower pure_pursuit
+
+----------------------------------------------------------------
+TERMINAL 7 — Reconocimiento de voz (Whisper)
+----------------------------------------------------------------
+ros2 run speech2text faster_whisper_asr
+
+----------------------------------------------------------------
+TERMINAL 8 — LLM + Planificación por voz (Ollama)
+----------------------------------------------------------------
+ros2 run llm_planning ollama_planning
