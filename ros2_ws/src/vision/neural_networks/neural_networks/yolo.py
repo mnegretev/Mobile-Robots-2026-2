@@ -36,7 +36,7 @@ class YoloNode(Node):
         self.model = YOLO(model_path)
         self.model.to('cuda')
         print("Model initialized succesfully")
-        self.sub_img = self.create_subscription(Image, '/camera/color/image_raw', self.callback_img, 1)
+        self.sub_img = self.create_subscription(Image, '/camera/image_raw', self.callback_img, 1)
 
 def main(args=None):
     rclpy.init(args=args)

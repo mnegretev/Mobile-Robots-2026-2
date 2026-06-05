@@ -12,8 +12,9 @@
   <depend>geometry_msgs</depend>
   <depend>sensor_msgs</depend>
   <depend>trajectory_msgs</depend>
-  <depend>tf</depend>
+  <depend>tf2_ros</depend>
   <depend>navig_msgs</depend>
+  <depend>nav_msgs</depend>
   <depend>manip_msgs</depend>
 
   <test_depend>ament_copyright</test_depend>

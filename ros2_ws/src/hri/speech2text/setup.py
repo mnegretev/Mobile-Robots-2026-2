@@ -15,7 +15,7 @@ setup(
     zip_safe=True,
     maintainer='emmanueldom',
     maintainer_email='emmanueldom007@outlook.com',
-    description='TODO: Package description',
+    description='Speech-to-text converter using Faster Whisper',
     license='TODO: License declaration',
     extras_require={
         'test': [
@@ -24,6 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'faster_whisper_asr = speech2text.faster_whisper_asr:main',
         ],
     },
 )
