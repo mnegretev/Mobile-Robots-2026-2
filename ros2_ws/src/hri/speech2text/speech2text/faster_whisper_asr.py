@@ -45,7 +45,7 @@ class FasterWhisperNode(Node):
             self.get_logger().info("Audio detected. Starting to record...")
             no_audio_counter = 0
             frames.append(data)
-            while no_audio_counter < 20 and rclpy.ok():
+            while no_audio_counter < 120 and rclpy.ok():
                 data = stream.read(CHUNK)
                 frames.append(data)
                 arr = numpy.frombuffer(data, dtype=numpy.int16)/32768.0
