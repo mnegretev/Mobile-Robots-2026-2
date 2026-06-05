@@ -1,0 +1,21 @@
+# MOBILE ROBOTS - FI-UNAM, 2026-2 - Final project Python deps (venv)
+# Install inside a venv created with --system-site-packages so that the
+# system rclpy / ROS 2 Jazzy Python packages remain importable.
+#
+#   python3 -m venv --system-site-packages ~/mr_venv
+#   source ~/mr_venv/bin/activate
+#   pip install -r requirements.txt
+
+# --- Speech ---
+faster-whisper>=1.0.0
+piper-tts>=1.2.0
+pyaudio>=0.2.13
+
+# --- Vision ---
+ultralytics>=8.2.0          # YOLOv8/v11; pulls torch + opencv-python
+
+# --- LLM client ---
+requests>=2.31.0            # talks to the local Ollama HTTP API (llama3)
+
+# numpy is provided by ROS; pin only if you hit ABI issues:
+# numpy<2.0
