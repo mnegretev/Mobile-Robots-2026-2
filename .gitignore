@@ -3,6 +3,7 @@
 *.user
 #*#
 *.bkp
+venv_stt/
 build/
 install/
 log/
