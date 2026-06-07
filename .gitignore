@@ -1,7 +1,7 @@
 *~
 *.pyc
 *.user
-*.venv
+*.my_venv
 #*#
 *.bkp
 build/
