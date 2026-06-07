@@ -15,21 +15,18 @@ from nav_msgs.msg import OccupancyGrid
 from nav_msgs.srv import GetMap
 import numpy
 
-FULL_NAME = "FULL NAME"
+FULL_NAME = "JESUS ALEXIS PEREZ LEON"
 
 class CostMapNode(Node):
     def get_inflated_map(self, static_map, inflation_cells):
         self.get_logger().debug("Inflating map by " + str(inflation_cells) + " cells")
         inflated = numpy.copy(static_map)
         [height, width] = static_map.shape
-        #
-        # TODO:
-        # Write the code necessary to inflate the obstacles in the map a radius
-        # given by 'inflation_cells' (expressed in number of cells)
-        # Map is given in 'static_map' as a bidimensional numpy array.
-        # Consider as occupied cells all cells with an occupation value greater than 50
-        #
-        
+        occupied = numpy.argwhere(static_map > 50)
+        for r, c in occupied:
+            r0 = max(0, r - inflation_cells); r1 = min(height, r + inflation_cells + 1)
+            c0 = max(0, c - inflation_cells); c1 = min(width, c + inflation_cells + 1)
+            inflated[r0:r1, c0:c1] = 100
         return inflated
     
     def get_cost_map(self, static_map, cost_radius):

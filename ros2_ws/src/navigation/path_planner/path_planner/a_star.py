@@ -94,6 +94,32 @@ class AStarNode(Node):
             [goal_r, goal_c] = parent_nodes[goal_r, goal_c]
         return path
 
+    def nearest_free(self, grid, r, c):
+        # Si (r,c) cae en celda ocupada/desconocida, busca en espiral (BFS)
+        # la celda LIBRE (==0) mas cercana. Asi el robot no queda atrapado
+        # cuando se detiene pegado a una pared/mueble, y las metas pegadas a
+        # paredes se vuelven alcanzables.
+        h, w = grid.shape
+        if 0 <= r < h and 0 <= c < w and grid[r, c] == 0:
+            return r, c
+        seen = numpy.full(grid.shape, False)
+        q = deque()
+        if 0 <= r < h and 0 <= c < w:
+            seen[r, c] = True
+            q.append((r, c))
+        neigh = [(1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)]
+        while q:
+            cr, cc = q.popleft()
+            for dr, dc in neigh:
+                nr, nc = cr + dr, cc + dc
+                if nr < 0 or nr >= h or nc < 0 or nc >= w or seen[nr, nc]:
+                    continue
+                seen[nr, nc] = True
+                if grid[nr, nc] == 0:
+                    return nr, nc
+                q.append((nr, nc))
+        return r, c   # no se encontro nada libre; regresa el original
+
     def get_maps(self):
         self.get_logger().info("Waiting for inflated map service...")
         while not self.clt_inflated_map.wait_for_service(timeout_sec=1.0):
@@ -137,8 +163,12 @@ class AStarNode(Node):
         
         self.get_logger().info("Planning path by A* from " + str([sx, sy])+" to "+str([gx, gy]))
         start_time = self.get_clock().now()
-        path = self.a_star(int((sy-zy)/res), int((sx-zx)/res), int((gy-zy)/res), int((gx-zx)/res),
-                           inflated_grid, cost_grid, use_diagonals)
+        # Convertir a celdas y, si caen en ocupado, brincar a la celda libre mas cercana
+        sr, sc = int((sy - zy) / res), int((sx - zx) / res)
+        gr, gc = int((gy - zy) / res), int((gx - zx) / res)
+        sr, sc = self.nearest_free(inflated_grid, sr, sc)
+        gr, gc = self.nearest_free(inflated_grid, gr, gc)
+        path = self.a_star(sr, sc, gr, gc, inflated_grid, cost_grid, use_diagonals)
         end_time = self.get_clock().now()
         delta_ms = (end_time.nanoseconds - start_time.nanoseconds)/1e6
         if len(path) > 0:

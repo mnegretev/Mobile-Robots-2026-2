@@ -17,13 +17,15 @@ NAME = "JESUS ALEXIS PEREZ LEON"
 
 class PathSmoothingNode(Node):
     def smooth_path(self, Q, w1, w2, max_steps):
+        n = len(Q)
+        if n < 3:                           # ruta vacia o muy corta: nada que suavizar
+            return numpy.copy(Q)
         P = numpy.copy(Q)
         tol     = 0.00001                   
         nabla   = numpy.full(Q.shape, float("inf"))
         epsilon = 0.1                       
         steps   = 0
 
-        n = len(P)
         nabla[0]   = 0
         nabla[n-1] = 0
 
@@ -42,6 +44,8 @@ class PathSmoothingNode(Node):
         self.get_logger().info("Smoothing path with params: " + str([w1, w2, steps]))
         start_time = self.get_clock().now()
         Q = numpy.asarray([[p.pose.position.x, p.pose.position.y] for p in request.path.poses])
+        if len(Q) < 3:
+            self.get_logger().warn("Ruta vacia o muy corta (a_star no encontro camino?); la devuelvo sin suavizar")
         P = self.smooth_path(Q, w1, w2, steps)
         end_time = self.get_clock().now()
         delta_ms = (end_time.nanoseconds - start_time.nanoseconds)/1e6

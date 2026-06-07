@@ -9,7 +9,7 @@
   ros_type_name: "tf2_msgs/msg/TFMessage"
   gz_type_name: "gz.msgs.Pose_V"
   direction: "GZ_TO_ROS"
-  
+
 - ros_topic_name: "cmd_vel"
   gz_topic_name: "/cmd_vel"
   ros_type_name: "geometry_msgs/msg/Twist"
@@ -33,8 +33,6 @@
   ros_type_name: "geometry_msgs/msg/PoseArray"
   gz_type_name: "gz.msgs.Pose_V"
   direction: GZ_TO_ROS
-<<<<<<< HEAD
-=======
 
 - ros_topic_name: "/camera/color/image_raw"
   gz_topic_name: "/world/default/model/justina_with_xarm/link/link6/sensor/cameracolor/image"
@@ -47,4 +45,3 @@
   ros_type_name: "sensor_msgs/msg/PointCloud2"
   gz_type_name: "gz.msgs.PointCloudPacked"
   direction: GZ_TO_ROS
->>>>>>> origin/main

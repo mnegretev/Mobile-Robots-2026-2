@@ -1,0 +1,198 @@
+================================================================================
+ INSTRUCTIVO DE PRUEBA - ROBOT DE SERVICIO "JUSTINA"
+ Proyecto final · Robots Moviles · FI-UNAM 2026-2
+================================================================================
+
+Justina es un robot de servicio simulado (base movil + brazo xArm6 con camara en
+la punta) que recibe instrucciones por VOZ, las convierte en un plan con un LLM
+(Ollama) y las ejecuta: navega por el departamento, apunta su camara, detecta
+objetos con YOLO y responde hablando.
+
+Flujo general:
+  voz -> Whisper (texto) -> Ollama (plan en JSON) -> SM Planner
+  (navegar / mirar / buscar / contar) -> Piper (voz de respuesta)
+
+
+--------------------------------------------------------------------------------
+ 1. REQUISITOS PREVIOS
+--------------------------------------------------------------------------------
+
+Antes de arrancar los nodos:
+
+  * Workspace COMPILADO. Si cambiaste codigo, recompila los paquetes tocados
+    (sin venv):
+        colcon build --packages-select final_project neural_networks speech2text
+
+  * OLLAMA corriendo con el modelo descargado (terminal aparte o de fondo):
+        ollama serve        (si dice "address already in use", ya corre: OK)
+        ollama pull llama3  (solo la primera vez)
+
+  * Entorno virtual configurado (source entorno.sh) para voz y vision.
+
+  REGLA DE ORO DE ENTORNOS:
+    - Simulacion, navegacion y sm_planner -> SIN venv (terminal normal, alias cb)
+    - Voz y vision (faster_whisper_asr, t2s, yolo) -> CON venv (source entorno.sh)
+    Nunca actives el venv para compilar ni para correr la simulacion/navegacion.
+
+
+--------------------------------------------------------------------------------
+ 2. ORDEN DE ARRANQUE (una terminal por nodo)
+--------------------------------------------------------------------------------
+
+Arranca los nodos EN ESTE ORDEN. Espera a que cada grupo cargue antes del siguiente.
+
+--- GRUPO A: Simulacion y navegacion (SIN venv) ---
+
+  1) Simulador de la casa
+        cd Mobile-Robots-2026-2/ros2_ws/
+        cb
+        ros2 launch house_simul house_simul.launch.py
+
+  2) RViz2 (visualizacion)
+        cd Mobile-Robots-2026-2/ros2_ws/
+        cb
+        ros2 launch motion_planning motion_planning_utils.launch.py
+
+  3) Cost map (mapa de costos con inflado de obstaculos)
+        cd Mobile-Robots-2026-2/ros2_ws/
+        cb
+        ros2 run path_planner cost_map --ros-args -p inflation_radius:=0.35
+
+  4) A* (planeacion de ruta)
+        cd Mobile-Robots-2026-2/ros2_ws/
+        cb
+        ros2 run path_planner a_star --ros-args -p diagonals:=true
+
+  5) Path smoothing (suavizado de ruta)
+        cd Mobile-Robots-2026-2/ros2_ws/
+        cb
+        ros2 run path_planner path_smoothing
+
+  6) Stanley (seguidor de ruta + evasion)
+        cd Mobile-Robots-2026-2/ros2_ws/
+        cb
+        ros2 run path_follower stanley --ros-args -p tol:=0.25
+
+  7) SM Planner (el cerebro: orquesta las instrucciones)
+        cd Mobile-Robots-2026-2/ros2_ws/
+        cb
+        ros2 run final_project sm_planner
+
+--- GRUPO B: Voz y vision (CON venv: source entorno.sh) ---
+
+  8) Speech-to-Text (reconocimiento de voz, push-to-talk con ENTER)
+        cd Mobile-Robots-2026-2/
+        source entorno.sh
+        ros2 run speech2text faster_whisper_asr
+
+  9) Text-to-Speech (voz del robot)
+        cd Mobile-Robots-2026-2/
+        source entorno.sh
+        ros2 run text2speech t2s
+
+  10) YOLO (deteccion de objetos con la camara del brazo)
+        cd Mobile-Robots-2026-2/
+        source entorno.sh
+        ros2 run neural_networks yolo
+
+--- OPCIONAL: Pose manual del brazo ---
+
+  sm_planner ya sube el brazo automaticamente cuando necesita mirar. Este comando
+  es SOLO para pruebas: posa el brazo para que la camara mire al frente y asi
+  verificar YOLO por separado.
+        cd Mobile-Robots-2026-2/ros2_ws/
+        python3 move_arm_pose.py
+
+
+--------------------------------------------------------------------------------
+ 3. COMO DARLE INSTRUCCIONES
+--------------------------------------------------------------------------------
+
+POR VOZ (push-to-talk), en la terminal de Speech-to-Text:
+  1. Veras:  >>> Presiona ENTER y habla...
+  2. Presiona ENTER UNA VEZ  ->  aparece: grabando... (habla ahora)
+  3. Di tu instruccion con voz clara.
+  4. Al terminar de hablar, transcribe sola y Justina ejecuta el plan.
+
+SIN VOZ (para pruebas rapidas), inyecta una instruccion de texto:
+  ros2 topic pub --once /sp_rec/recognized std_msgs/msg/String "{data: 've a la cocina y busca el refrigerador'}"
+
+
+--------------------------------------------------------------------------------
+ 4. QUE INSTRUCCIONES PUEDE EJECUTAR (con ejemplos)
+--------------------------------------------------------------------------------
+
+NAVEGACION (se desplaza a un lugar conocido):
+  - "Ve a la cocina."
+  - "Llevame al comedor."
+  - "Ve a la recamara y luego a la sala."   (encadena varios destinos)
+
+BUSQUEDA CON ESCANEO (navega al area, apunta la camara y GIRA sobre su propio eje
+para barrer el lugar hasta encontrar el objeto o completar la vuelta):
+  - "Ve a la cocina y busca el refrigerador."
+  - "Busca una silla."                       (busca girando desde donde esta)
+  - "Ve a la sala y busca una television."
+
+PREGUNTAS DE VISION (mira al frente sin moverse y responde si/no):
+  - "Ves una persona?"
+  - "Dime si ves una silla."
+
+DESCRIPCION Y CONTEO:
+  - "Dime que ves."          -> lista todo (ej: "Veo 2 personas, una silla y una television")
+  - "Cuantas personas ves?"  -> responde un numero
+
+TAREAS COMPUESTAS:
+  - "Ve al comedor, busca una botella y luego ve a la sala."
+
+LUGARES CONOCIDOS (mapeados):
+  - recamara
+  - sala de usos multiples
+  - sala
+  - desayunador
+  - gimnasio
+  - comedor
+  - cocina
+
+OBJETOS DETECTABLES:
+  Usa YOLOv8 con clases COCO (objetos comunes: persona, silla, sofa, cama,
+  television, refrigerador, botella, taza, celular, pelota, etc.).
+
+
+--------------------------------------------------------------------------------
+ 5. QUE NO PUEDE HACER
+--------------------------------------------------------------------------------
+
+  - NO agarra ni manipula objetos. El brazo solo apunta la camara; no hay pinza.
+    No puede "traer", "recoger" ni "mover" cosas.
+  - NO va a lugares fuera de la lista mapeada. Si pides un lugar que no conoce
+    (ej: "ve al bano"), responde que no puede.
+  - NO detecta objetos fuera de las clases COCO, y en simulacion CONFUNDE muebles
+    (una silla puede etiquetarla como banca o sofa): la deteccion es aproximada.
+  - NO abre puertas, no enciende aparatos, no interactua fisicamente con el entorno.
+  - NO es un asistente de conocimiento general. Es un planificador de tareas; si le
+    pides algo que no corresponde a sus acciones, contesta que no es posible.
+
+  Ejemplos de instrucciones NO factibles (responde por que no puede):
+    - "Traeme un cafe."         -> no tiene pinza ni puede tomar objetos
+    - "Ve al bano."             -> no es un lugar mapeado
+    - "Apaga la television."    -> no interactua con aparatos
+    - "Que hora es?"            -> no es una tarea que pueda ejecutar
+
+
+--------------------------------------------------------------------------------
+ 6. SOLUCION DE PROBLEMAS
+--------------------------------------------------------------------------------
+
+  - Push-to-talk: presiona ENTER UNA SOLA VEZ y espera el mensaje "grabando...".
+    Si no capta tu voz, sube el volumen del microfono.
+  - Primera respuesta lenta: la primera instruccion tarda mas porque Ollama carga
+    el modelo a memoria. Las siguientes son rapidas. Puedes "calentarlo" con una
+    instruccion de prueba antes de la demo.
+  - Confunde objetos: es limitacion de YOLO/COCO en simulacion, no un error del
+    sistema. Para objetos clave hay alias configurados (silla <-> banca/sofa).
+  - Gimnasio: tiene una barra de pesas que el laser 2D no ve bien; para entrar/salir
+    conviene indicarle ir primero a la sala y de ahi al gimnasio (o viceversa).
+  - Si el robot se atora fisicamente: la pose estimada puede desfasarse de la real.
+    Es consecuencia del atoramiento; reubicalo o reinicia la pose en RViz si pasa.
+
+================================================================================
