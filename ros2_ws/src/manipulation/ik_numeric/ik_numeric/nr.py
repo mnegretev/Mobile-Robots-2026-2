@@ -189,6 +189,7 @@ class IKNewtonRaphsonNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     ik_node = IKNewtonRaphsonNode()
+    print(ik_node.forward_kinematics([0, -0.5, -1.4, 0,0.3,0]))
     rclpy.spin(ik_node)
     ik_node.destroy_node()
     rclpy.shutdown()

@@ -63,7 +63,7 @@ class FasterWhisperNode(Node):
             wf.writeframes(b''.join(frames))
             wf.close()
 
-            segments, info = model.transcribe(WAVE_OUTPUT_FILENAME, beam_size=5, language="zh")
+            segments, info = model.transcribe(WAVE_OUTPUT_FILENAME, beam_size=5, language="es")
             self.get_logger().info("Detected language '%s' with probability %f" % (info.language, info.language_probability))
             for segment in segments:
                 self.get_logger().info("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))
