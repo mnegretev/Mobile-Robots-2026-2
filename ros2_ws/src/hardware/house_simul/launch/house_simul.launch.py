@@ -33,7 +33,8 @@ def launch_setup(context, *args, **kwargs):
     add_gripper = LaunchConfiguration('add_gripper', default=True)
     add_vacuum_gripper = LaunchConfiguration('add_vacuum_gripper', default=False)
     add_bio_gripper = LaunchConfiguration('add_bio_gripper', default=False)
-
+    add_realsense_d435i = LaunchConfiguration('add_realsense_d435i', default=True)
+    add_d435i_links = LaunchConfiguration('add_d435i_links', default=True)
     ros_namespace = LaunchConfiguration('ros_namespace', default='').perform(context)
 
     ros2_control_plugin = 'gz_ros2_control/GazeboSimSystem'
@@ -74,6 +75,8 @@ def launch_setup(context, *args, **kwargs):
             add_gripper=add_gripper,
             add_vacuum_gripper=add_vacuum_gripper,
             add_bio_gripper=add_bio_gripper,
+            add_d435i_links=add_d435i_links,
+            add_realsense_d435i=add_realsense_d435i
         )
         .robot_description(file_path=urdf_file)
         .robot_description_semantic(file_path=srdf_file)

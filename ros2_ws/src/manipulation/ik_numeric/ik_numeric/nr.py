@@ -126,11 +126,8 @@ class IKNewtonRaphsonNode(Node):
         #
         qn = numpy.asarray([Q,]*len(Q)) + numpy.identity(len(Q))*delta_q
         qp = numpy.asarray([Q,]*len(Q)) - numpy.identity(len(Q))*delta_q
-
-        print(qn)
         for i in range(6):
-            J[:,i] = (self.forward_kinematics(qn[i])- self.forward_kinematics(qp[i])) / (2.0*delta_q)
-
+            J[:,i] = (self.forward_kinematics(qn[i]) - self.forward_kinematics(qp[i]))/(2.0*delta_q)
         return J
         
     def inverse_kinematics(self, Xd, init_guess=numpy.zeros(7), max_iter=2000):
@@ -158,19 +155,17 @@ class IKNewtonRaphsonNode(Node):
         #    Set success if maximum iterations were not exceeded
         #    Return success and calculated Q
         #
-        tol = 0.001
+        tol = 0.000001
         X = self.forward_kinematics(Q)
-        error = X - Xd
-        error[3:6] = (error[3:6] + math.pi) % (2*math.pi) - math.pi
-        while numpy.linalg.norm(error) > tol and iterations < max_iter:
+        e = X - Xd
+        e[3:6] = (e[3:6] + math.pi)%(2*math.pi) - math.pi
+        while numpy.linalg.norm(e)  > tol and iterations < max_iter:
             J = self.jacobian(Q)
-            Q = Q - numpy.linalg.pinv(J).dot(error)
-            Q = (Q + math.pi) % (2*math.pi) - math.pi
+            Q = (Q - numpy.linalg.pinv(J) @ e + math.pi)%(2*math.pi) - math.pi
             X = self.forward_kinematics(Q)
-            error = X - Xd
-            error[3:6] = (error[3:6] + math.pi) % (2*math.pi) - math.pi
+            e = X - Xd
+            e[3:6] = (e[3:6] + math.pi)%(2*math.pi) - math.pi
             iterations += 1
-            
         success = iterations < max_iter
         if success:
             self.get_logger().info("IK solved after " + str(iterations) + " steps. Q=" + str(Q))
@@ -195,6 +190,7 @@ class IKNewtonRaphsonNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     ik_node = IKNewtonRaphsonNode()
+    print(ik_node.forward_kinematics([0, -0.5, -1.4, 0,0.3,0]))
     rclpy.spin(ik_node)
     ik_node.destroy_node()
     rclpy.shutdown()
