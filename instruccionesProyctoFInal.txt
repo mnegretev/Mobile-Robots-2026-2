@@ -1,6 +1,7 @@
 ================================================================================
  INSTRUCTIVO DE PRUEBA - ROBOT DE SERVICIO "JUSTINA"
  Proyecto final · Robots Moviles · FI-UNAM 2026-2
+Jesus Alexis Perez Leon
 ================================================================================
 
 Justina es un robot de servicio simulado (base movil + brazo xArm6 con camara en
