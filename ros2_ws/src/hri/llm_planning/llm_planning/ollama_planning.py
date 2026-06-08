@@ -12,7 +12,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import math
 import json
 
-NAME = "Mercado Alejandre Mario Daniel"
+NAME = "Carrazco Mesa. Dominguez Osio. Mercado Alejandre"
 
 LOCATIONS = {
     "refrigerador":   ( 9.97,  0.34, 0.0),
