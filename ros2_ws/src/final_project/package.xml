@@ -3,8 +3,8 @@
 <package format="3">
   <name>final_project</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="marco.negrete@ingenieria.unam.edu">thedoctor</maintainer>
+  <description>Integración de ASR, LLM Planning y control de robot doméstico</description>
+  <maintainer email="galiciariojadanie@gmail.com">Robot Project</maintainer>
   <license>LGPL-3.0-only</license>
 
   <depend>rclpy</depend>
@@ -15,11 +15,13 @@
   <depend>tf</depend>
   <depend>navig_msgs</depend>
   <depend>manip_msgs</depend>
-
+  
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
+
+  <exec_depend>python3-dev</exec_depend>
 
   <export>
     <build_type>ament_python</build_type>
