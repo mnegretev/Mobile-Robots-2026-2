@@ -73,6 +73,9 @@ class CostMapNode(Node):
         self.map_width  = self.map_info.width
         self.map_height = self.map_info.height
         self.map_res    = self.map_info.resolution
+        if self.map_res <= 0.0:
+            self.get_logger().warn("map_res es 0, esperando mapa valido...")
+            return
         self.map_data = numpy.reshape(numpy.asarray(self.map_static.data, dtype='int'), (self.map_height, self.map_width))
         inflation_radius  = self.get_parameter('inflation_radius').get_parameter_value().double_value
         inflated_map_data = self.get_inflated_map(self.map_data, round(inflation_radius/self.map_res))
