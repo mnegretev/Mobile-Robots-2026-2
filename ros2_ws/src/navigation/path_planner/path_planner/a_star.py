@@ -39,12 +39,8 @@ class AStarNode(Node):
         in_open_list[start_r, start_c] = True
         g_values    [start_r, start_c] = 0
         [row, col]= [start_r, start_c]   #Current node
-        #
-        # TODO:
-        # Implement the A* algorithm for path planning
-        # Map is considered to be a 2D array and start and goal positions
-        # are given as row-col pairs. You can follow these steps:
-        #
+
+        #Implementación
         # WHILE open list is not empty and current is different from goal:
         #     Get current node [row,col] from open list (see heapq.heappop function)
         #     Mark current node as 'in_closed_list'
@@ -131,9 +127,12 @@ class AStarNode(Node):
         [gx, gy] = [req.goal .pose.position.x, req.goal .pose.position.y]
         [zx, zy] = [self.inflated_map.info.origin.position.x, self.inflated_map.info.origin.position.y]
         use_diagonals = self.get_parameter('diagonals').get_parameter_value().bool_value
+        #Prueba
+        self.get_logger().info(f"use_diagonals = {use_diagonals}")
+
         inflated_grid = numpy.reshape(numpy.asarray(self.inflated_map.data), (info.height, info.width))
         cost_grid     = numpy.reshape(numpy.asarray(self.cost_map.data)    , (info.height, info.width))
-        
+
         self.get_logger().info("Planning path by A* from " + str([sx, sy])+" to "+str([gx, gy]))
         start_time = self.get_clock().now()
         path = self.a_star(int((sy-zy)/res), int((sx-zx)/res), int((gy-zy)/res), int((gx-zx)/res),
@@ -151,20 +150,20 @@ class AStarNode(Node):
 
     def callback_timer(self):
         self.pub_path.publish(self.msg_path)
-            
+
     def __init__(self):
         super().__init__("a_star_node")
         self.get_logger().info("INITIALIZING A STAR NODE - " + NAME)
         self.clt_inflated_map = self.create_client(GetMap, '/get_inflated_map')
         self.clt_cost_map     = self.create_client(GetMap, '/get_cost_map')
-        
+
         [self.inflated_map, self.cost_map] = self.get_maps()
         self.declare_parameter('diagonals', False)
         self.srv_plan_path = self.create_service(GetPlan, '/path_planning/plan_path', self.callback_a_star)
         self.pub_path = self.create_publisher(Path, '/path_planning/path', 10)
         self.msg_path = Path()
         self.timer = self.create_timer(0.5, self.callback_timer)
-            
+
 def main(args=None):
     rclpy.init(args=args)
     a_star_node = AStarNode()
@@ -172,6 +171,6 @@ def main(args=None):
     a_star_node.destroy_node()
     rclpy.shutdown()
 
-    
+
 if __name__ == '__main__':
     main()

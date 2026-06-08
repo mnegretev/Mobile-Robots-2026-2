@@ -20,7 +20,11 @@ import numpy
 import heapq
 import math
 
+<<<<<<< HEAD
 NAME = "MENDEZ HORTA ALEXANDER"
+=======
+NAME = "Santiago Cruz Plaza"
+>>>>>>> origin/cruz_plaza
 
 class TreeNode:
     def __init__(self, x, y, parent=None):
@@ -34,7 +38,7 @@ class RRTNode(Node):
         c = int((x - grid_map.info.origin.position.x)/grid_map.info.resolution)
         r = int((y - grid_map.info.origin.position.y)/grid_map.info.resolution)
         return grid_map.data[r*grid_map.info.width + c] < 40 and grid_map.data[r*grid_map.info.width + c] >= 0
-    
+
     def get_random_q(self, grid_map):
         min_x = grid_map.info.origin.position.x
         min_y = grid_map.info.origin.position.y
@@ -59,7 +63,7 @@ class RRTNode(Node):
                 S.append(c)
         distances = numpy.asarray([math.sqrt((x - n.x)**2 + (y - n.y)**2) for n in N])
         return N[numpy.argmin(distances)]
-    
+
     def get_new_node(self, nearest_node, rnd_x, rnd_y, epsilon):
         dist = math.sqrt((nearest_node.x - rnd_x)**2 + (nearest_node.y - rnd_y)**2)
         mag = min(dist, epsilon)
@@ -68,7 +72,7 @@ class RRTNode(Node):
         nearest_x = nearest_node.x + mag*(rnd_x - nearest_node.x)/dist
         nearest_y = nearest_node.y + mag*(rnd_y - nearest_node.y)/dist
         return TreeNode(nearest_x, nearest_y, nearest_node)
-    
+
     def check_collision(self, n1, n2, grid_map, epsilon):
         dist = math.sqrt((n1.x-n2.x)**2 + (n1.y-n2.y)**2)
         if dist > epsilon:
@@ -83,7 +87,7 @@ class RRTNode(Node):
     def rrt(self, start_x, start_y, goal_x, goal_y, grid_map, epsilon, max_attempts):
         tree = TreeNode(start_x, start_y, None)
         goal_node = TreeNode(goal_x, goal_y, None)
-    
+
         #
         # TODO
         # Implement the RRT algorithm for path planning
@@ -92,9 +96,15 @@ class RRTNode(Node):
         # Return both, the tree and the path. You can follow these steps:
         #
         while goal_node.parent is None and max_attempts > 0:
+<<<<<<< HEAD
             [x,y] = self.get_random_q(grid_map)
             nearest_node = self.get_nearest_node(tree,x,y)
             new_node = self.get_new_node(nearest_node,x,y, epsilon)
+=======
+            [x, y] = self.get_random_q(grid_map)
+            nearest_node = self.get_nearest_node(tree, x, y)
+            new_node = self.get_new_node(nearest_node, x, y, epsilon)
+>>>>>>> origin/cruz_plaza
             if not self.check_collision(nearest_node, new_node, grid_map, epsilon):
                 nearest_node.children.append(new_node)
                 if not self.check_collision(new_node, goal_node, grid_map, epsilon):
@@ -138,7 +148,7 @@ class RRTNode(Node):
         response = future.result()
         self.get_logger().info("Got inflated map.")
         return response.map
-   
+
     def callback_rrt(self, req, resp):
         [sx, sy] = [req.start.pose.position.x, req.start.pose.position.y]
         [gx, gy] = [req.goal .pose.position.x, req.goal .pose.position.y]
@@ -146,18 +156,18 @@ class RRTNode(Node):
         max_attempts = self.get_parameter('max_n').get_parameter_value().integer_value
         str_data = str([sx,sy]) + " to " + str([gx,gy]) +" with e=" + str(epsilon) +  " and " + str(max_attempts) + " attempts."
         self.get_logger().info("Planning by RRT from " + str_data)
-        
+
         start_time = self.get_clock().now()
         tree, path = self.rrt(sx, sy, gx, gy, self.grid_map, epsilon, max_attempts)
         end_time   = self.get_clock().now()
-        
+
         delta_ms = (end_time.nanoseconds - start_time.nanoseconds)/1e6
         if len(path) > 0:
             self.get_logger().info("Path planned after " + str(delta_ms) + " ms")
         else:
             self.get_logger().info("Cannot plan path from  " + str([sx, sy])+" to "+str([gx, gy]) + " :'(")
-        
-        
+
+
         self.msg_tree = self.get_tree_marker(tree)
         self.msg_path = Path()
         self.msg_path.header.frame_id = "map"
@@ -192,7 +202,7 @@ class RRTNode(Node):
         self.msg_path = Path()
         self.msg_tree = self.get_tree_marker(TreeNode(0,0))
         self.timer = self.create_timer(0.5, self.callback_timer)
-            
+
 def main(args=None):
     rclpy.init(args=args)
     rrt_node = RRTNode()
@@ -200,6 +210,6 @@ def main(args=None):
     rrt_node.destroy_node()
     rclpy.shutdown()
 
-    
+
 if __name__ == '__main__':
     main()

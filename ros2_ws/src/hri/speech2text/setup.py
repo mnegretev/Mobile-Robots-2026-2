@@ -13,10 +13,10 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='thedoctor',
-    maintainer_email='marco.negrete@ingenieria.unam.edu',
+    maintainer='santiagoc',
+    maintainer_email='santiagocp@comunidad.unam.mx',
     description='TODO: Package description',
-    license='LGPL-3.0-only',
+    license='MIT',
     extras_require={
         'test': [
             'pytest',
@@ -24,7 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'faster_whisper_asr = speech2text.faster_whisper_asr:main'
+            'stt_node = speech2text.stt_node:main',
+            'llm_interpreter = speech2text.llm_interpreter:main',
         ],
     },
 )

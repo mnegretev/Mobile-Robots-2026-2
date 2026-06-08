@@ -38,7 +38,7 @@ class CostMapNode(Node):
                             c = min(width-1, max(0,j+k2))
                             inflated[r,c] = 100
         return inflated
-    
+
     def get_cost_map(self, static_map, cost_radius):
         self.get_logger().debug("Getting cost map with " + str(cost_radius) + " cells")
         cost_map = numpy.copy(static_map)
@@ -46,7 +46,7 @@ class CostMapNode(Node):
         #
         # TODO:
         # Write the code necessary to calculate a cost map for the given map.
-        # To calculate cost, consider as example the following map:    
+        # To calculate cost, consider as example the following map:
         # [[ 0 0 0 0 0 0]
         #  [ 0 X 0 0 0 0]
         #  [ 0 X X 0 0 0]
@@ -76,7 +76,7 @@ class CostMapNode(Node):
     def callback_inflated_map(self, request, response):
         response.map = self.inflated_map
         return response
-        
+
     def callback_cost_map(self, request, response):
         response.map = self.cost_map
         return response
