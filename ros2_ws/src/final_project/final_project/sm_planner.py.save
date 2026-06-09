@@ -12,15 +12,15 @@ SM_WAIT_GOAL_REACHED = 40
 SM_DONE              = 80
 
 LOCATIONS = {
-    "home":         {"x":  0.0,  "y":  0.0,  "w": 1.0},  # origen del mapa
-    "refrigerator": {"x": 10.35, "y":  0.39, "w": 1.0},  # calibrado en RViz
-    "kitchen":      {"x": 10.53, "y": -2.26, "w": 1.0},  # calibrado en RViz
-    "table":        {"x":  8.92, "y":  1.41, "w": 1.0},  # calibrado en RViz
-    "sofa":         {"x":  2.45, "y":  1.15, "w": 1.0},  # calibrado en RViz
-    "tv":           {"x":  2.98, "y": -2.97, "w": 1.0},  # calibrado en RViz
-    "bed":          {"x": -3.95, "y":  2.25, "w": 1.0},  # calibrado en RViz
-    "door":         {"x": 10.29, "y": -2.71, "w": 1.0},  # calibrado en RViz
-    "stove":        {"x":  5.59, "y":  0.78, "w": 1.0},  # calibrado en RViz
+    "home":         {"x":  0.0,  "y":  0.0,  "w": 1.0},
+    "refrigerator": {"x":  3.5,  "y":  2.5,  "w": 1.0},
+    "kitchen":      {"x":  3.0,  "y":  1.0,  "w": 1.0},
+    "table":        {"x":  1.5,  "y": -1.0,  "w": 1.0},
+    "sofa":         {"x": -2.0,  "y":  1.5,  "w": 1.0},
+    "bed":          {"x": -3.0,  "y": -2.0,  "w": 1.0},
+    "tv":           {"x": -1.5,  "y":  2.5,  "w": 1.0},
+    "door":         {"x":  0.5,  "y": -3.5,  "w": 1.0},
+    "stove":        {"x":  4.0,  "y":  0.5,  "w": 1.0},
 }
 
 SYNONYMS = {
@@ -43,46 +43,8 @@ IMPOSSIBLE = {
     "desaparece": "No puedo desaparecer.",
 }
 
-SYSTEM_PROMPT = (
-    "Eres un planificador de acciones para un robot móvil de servicio en simulación. "
-    "Respondes ÚNICAMENTE con listas de acciones ejecutables, una por línea, sin explicaciones ni texto adicional. "
-    "Termina siempre con END en la última línea.\n"
-    "Lugares disponibles: refrigerator, kitchen, table, sofa, bed, tv, door, stove, home.\n"
-    "Acciones disponibles:\n"
-    "  NAVIGATE lugar  -> mueve el robot al lugar indicado\n"
-    "  SPEAK texto     -> el robot dice el texto en voz alta\n"
-    "  DETECT objeto   -> el robot busca el objeto con la camara\n"
-    "  STOP            -> detiene el robot\n"
-    "  END             -> fin del plan\n"
-    "Reglas:\n"
-    "1. Responde solo con acciones, una por linea, sin numeracion ni explicaciones.\n"
-    "2. Termina siempre con END.\n"
-    "3. Si la instruccion esta fuera de las capacidades, responde: SPEAK <razon breve> seguido de END.\n"
-    "4. Si te preguntan que puedes hacer, responde con SPEAK describiendo tus capacidades, luego END.\n"
-    "5. Para instrucciones compuestas como \'ve al refri y luego a la mesa\', genera multiples NAVIGATE.\n"
-    "Ejemplos:\n"
-    "Instruccion: ve al refri\n"
-    "NAVIGATE refrigerator\n"
-    "SPEAK Llegue al refrigerador.\n"
-    "END\n"
-    "Instruccion: robot vuela\n"
-    "SPEAK No puedo volar.\n"
-    "END\n"
-    "Instruccion: dime que puedes hacer\n"
-    "SPEAK Puedo navegar a lugares, detectar objetos con la camara y hablar. No puedo manipular objetos ni volar.\n"
-    "END\n"
-    "Instruccion: busca una bebida en la cocina\n"
-    "NAVIGATE kitchen\n"
-    "DETECT bebida\n"
-    "SPEAK Busque una bebida en la cocina.\n"
-    "END"
-)
-
 OLLAMA_URL   = "http://localhost:11434/api/chat"
-OLLAMA_MODEL = "llama3.2:3b"
-
-# Timeout de navegacion: numero de ciclos de 0.05s antes de continuar (2400 = 120 segundos)
-NAV_TIMEOUT_CYCLES = 2400
+OLLAMA_MODEL = "llama3"
 
 
 class SmPlannerNode(Node):
@@ -96,36 +58,33 @@ class SmPlannerNode(Node):
         self.plan         = []
         self.plan_index   = 0
         self.goal_reached = False
-        self.nav_timeout  = 0   # FIX: contador de timeout de navegacion
-
-        # FIX: historial inicializado con el prompt del sistema
-        self.msg_history = [
-            {"role": "user",      "content": SYSTEM_PROMPT},
-            {"role": "assistant", "content": "Entendido."},
-        ]
-
+        self.nav_timeout  = 0
+        self.msg_history = [{
+    "role": "user",
+    "content": (
+        "Eres un planificador de acciones para un robot móvil de servicio en simulación. "
+        "Tu única función es generar listas de acciones ejecutables. Nunca das explicaciones largas. "
+        "El robot existe en un departamento simulado con los siguientes lugares: "
+        "refrigerator, kitchen, table, sofa, bed, tv, door, stove, home. "
+        "El robot puede ejecutar estas acciones y solo estas: NAVIGATE lugar, SPEAK texto, DETECT objeto, STOP, END. "
+        "Reglas estrictas: responde únicamente con la lista de acciones, una por línea, "
+        "sin numeración, sin explicaciones, sin texto adicional. "
+        "Termina siempre con END. "
+        "Si la instrucción está fuera de las capacidades del robot, usa SPEAK seguido de la razón breve y luego END."
+    )
+}, {
+    "role": "assistant",
+    "content": "Entendido."
+}]
         self.pub_goal = self.create_publisher(PoseStamped, "/goal_pose", 1)
         self.pub_tts  = self.create_publisher(String,      "/tts_query", 1)
         self.create_subscription(String, "/sp_rec/recognized", self._cb_recognized, 1)
         self.create_subscription(Bool,   "/navigation/goal_reached", self._cb_goal_reached, 1)
         self.get_logger().info("Esperando instruccion en /sp_rec/recognized ...")
 
-    # Frases de ruido que Whisper genera con silencio o audio del TTS
-    NOISE_FILTERS = [
-        "amara", "subtítulos", "subtitulos", "transcripción",
-        "transcripcion", "comunidad", "gracias por ver",
-    ]
-
     def _cb_recognized(self, msg):
         if self.state == SM_WAIT_FOR_COMMAND:
-            text = msg.data.strip().lower()
-            # Filtrar ruido de Whisper
-            if any(noise in text for noise in self.NOISE_FILTERS):
-                self.get_logger().warn(f"Texto filtrado como ruido: '{text}'")
-                return
-            if len(text) < 3:
-                return
-            self.command     = text
+            self.command     = msg.data.strip().lower()
             self.new_command = True
             self.get_logger().info(f"Instruccion recibida: {self.command}")
 
@@ -147,12 +106,10 @@ class SmPlannerNode(Node):
         msg.pose.position.z    = 0.0
         msg.pose.orientation.w = loc["w"]
         self.pub_goal.publish(msg)
-        self.get_logger().info(f"Meta publicada: {location_key} ({loc['x']}, {loc['y']})")
+        self.get_logger().info(f"Meta publicada: {location_key} ({loc[chr(120)]}, {loc[chr(121)]})")
         return True
 
     def _speak(self, text):
-        import time
-        self._last_tts_time = time.time()
         self.pub_tts.publish(String(data=text))
         self.get_logger().info(f"TTS: {text}")
 
@@ -184,20 +141,11 @@ class SmPlannerNode(Node):
     def _ollama_interpret(self, cmd):
         try:
             self.msg_history.append({"role": "user", "content": cmd})
-            resp = requests.post(
-                OLLAMA_URL,
-                json={
-                    "model":    OLLAMA_MODEL,
-                    "messages": self.msg_history,
-                    "stream":   False,
-                    "options":  {"num_ctx": 4096},
-                },
-                timeout=45,
-            )
+            resp = requests.post(OLLAMA_URL, json={"model": OLLAMA_MODEL, "messages": self.msg_history, "stream": False, "options": {"num_ctx": 4096}}, timeout=15)
             resp.raise_for_status()
             reply = resp.json()["message"]["content"].strip()
             self.msg_history.append({"role": "assistant", "content": reply})
-            self.get_logger().info(f"Ollama respondio:\n{reply}")
+            self.get_logger().info(f"Ollama respondio: {reply}")
             return self._parse_plan(reply)
         except Exception as e:
             self.get_logger().warn(f"Ollama fallo: {e}")
@@ -206,7 +154,7 @@ class SmPlannerNode(Node):
     def _parse_plan(self, text):
         plan = []
         for line in text.splitlines():
-            line  = line.strip()
+            line = line.strip()
             if not line:
                 continue
             upper = line.upper()
@@ -233,12 +181,10 @@ class SmPlannerNode(Node):
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0)
             self.get_clock().sleep_for(Duration(seconds=0.05))
-
             if self.state == SM_WAIT_FOR_COMMAND:
                 if self.new_command:
                     self.new_command = False
                     self.state = SM_INTERPRET_COMMAND
-
             elif self.state == SM_INTERPRET_COMMAND:
                 self.get_logger().info("Interpretando instruccion...")
                 plan = self._rule_based_interpret(self.command)
@@ -251,7 +197,6 @@ class SmPlannerNode(Node):
                 self.plan_index = 0
                 self.get_logger().info(f"Plan: {self.plan}")
                 self.state = SM_EXECUTE_PLAN
-
             elif self.state == SM_EXECUTE_PLAN:
                 if self.plan_index >= len(self.plan):
                     self.state = SM_DONE
@@ -261,7 +206,6 @@ class SmPlannerNode(Node):
                 if action == "NAVIGATE":
                     if self._publish_goal(arg):
                         self.goal_reached = False
-                        self.nav_timeout  = 0
                         self.state = SM_WAIT_GOAL_REACHED
                     else:
                         self._speak(f"No conozco el lugar {arg}.")
@@ -276,21 +220,10 @@ class SmPlannerNode(Node):
                     self._sleep(1.0)
                 elif action == "END":
                     self.state = SM_DONE
-
             elif self.state == SM_WAIT_GOAL_REACHED:
-                # FIX: timeout para que la demo no se cuelgue si el robot se atasca
                 if self.goal_reached:
                     self.goal_reached = False
-                    self.nav_timeout  = 0
                     self.state = SM_EXECUTE_PLAN
-                else:
-                    self.nav_timeout += 1
-                    if self.nav_timeout > NAV_TIMEOUT_CYCLES:
-                        self.get_logger().warn("Timeout de navegacion. Continuando plan.")
-                        self.nav_timeout  = 0
-                        self.goal_reached = False
-                        self.state = SM_EXECUTE_PLAN
-
             elif self.state == SM_DONE:
                 self.get_logger().info("Plan completado. Esperando nueva instruccion.")
                 self.plan       = []
