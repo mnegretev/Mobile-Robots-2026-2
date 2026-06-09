@@ -133,7 +133,7 @@ class PurePursuitNode(Node):
         self.clt_smooth_path = self.create_client(ProcessPath, '/path_planning/smooth_path')
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 1)
         self.pub_goal_reached = self.create_publisher(Bool, '/navigation/goal_reached', 1)
-        self.sub_goal_pose = self.create_subscription(PoseStamped, '/goal_pose', self.callback_goal_pose, 1)
+        self.sub_goal_pose = self.create_subscription(PoseStamped, '/goal_pose', self.callback_goal_pose, 1) #OJO AQUI
 
     def spin(self):
         robot_pose_tf_ready = False

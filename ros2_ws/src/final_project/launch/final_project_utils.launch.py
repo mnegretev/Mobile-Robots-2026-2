@@ -60,7 +60,7 @@ def generate_launch_description():
                 ),
                 Node(
                     package='path_planner',
-                    executable='cost_map_solved',
+                    executable='cost_map',
                     name='cost_map',
                     parameters=[{'inflation_radius':0.25}, {'cost_radius':0.5}]
                 ),
@@ -71,19 +71,24 @@ def generate_launch_description():
             actions=[
                 Node(
                     package='path_planner',
-                    executable='a_star_solved',
+                    executable='a_star',
                     name='a_star',
                 ),
                 Node(
                     package='path_planner',
-                    executable='path_smoothing_solved',
+                    executable='path_smoothing',
                     name='path_smoothing',
                 ),
                 Node(
                     package='path_follower',
-                    executable='pure_pursuit_solved',
+                    executable='pure_pursuit',
                     name='pure_pursuit',
-                    parameters=[{'alpha':0.1}, {'beta':0.1}]
+                    parameters=[{'alpha':0.7}, {'beta':0.2}]
+                ),
+                Node(
+                    package='final_project',
+                    executable='sm_planner',
+                    name='sm_planner',
                 ),
             ]
         ),

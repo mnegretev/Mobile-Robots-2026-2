@@ -8,27 +8,27 @@ def generate_launch_description():
     # Directorio local para guardar el modelo y no descargarlo de nuevo
     hf_cache_dir = os.path.expanduser('~/.cache/huggingface')
     
-    # Ejecutar el servidor vLLM en Docker
-    vllm_server = ExecuteProcess(
-        cmd=[
-            'docker', 'run', '--rm', '--runtime=nvidia', '--network', 'host',
-            '-v', f'{hf_cache_dir}:/root/.cache/huggingface',
-            'ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin',
-            'vllm', 'serve', 'RedHatAI/Qwen3-4B-quantized.w4a16',
-            '--gpu-memory-utilization', '0.4', '--max-model-len', '32678'
-        ],
-        output='screen'
-    )
+    # 1. Servidor de Inteligencia Artificial (vLLM en Docker para Jetson)
+    # vllm_server = ExecuteProcess(
+    #     cmd=[
+    #         'docker', 'run', '--rm', '--runtime=nvidia', '--network', 'host',
+    #         '-v', f'{hf_cache_dir}:/root/.cache/huggingface',
+    #         'ghcr.io/nvidia-ai-iot/vllm:latest-jetson-orin',
+    #         'vllm', 'serve', 'RedHatAI/Qwen3-4B-quantized.w4a16',
+    #         '--gpu-memory-utilization', '0.4', '--max-model-len', '32678'
+    #     ],
+    #     output='screen'
+    # )
     
-    # Nodo del Oído (ASR - Reconocimiento de voz)
+    # 2. Nodo del Oído (ASR - Reconocimiento de voz de audio a texto)
     asr_node = Node(
         package='speech2text',
-        executable='faster_whisper_node',  # Asegúrate de que este sea el nombre del entry_point en el setup.py de speech2text
-        name='faster_whisper_node',
+        executable='faster_whisper_asr',  
+        name='faster_whisper_asr',
         output='screen'
     )
     
-    # Nodo del Cerebro (LLM - Planificación y respuesta)
+    # 3. Nodo del Cerebro (LLM - Tu código OllamaPlanningNode adaptado a JSON)
     llm_node = Node(
         package='llm_planning',
         executable='ollama_planning',
@@ -36,7 +36,7 @@ def generate_launch_description():
         output='screen'
     )
     
-    # Nodo de la Boca (TTS - Texto a Voz)
+    # 4. Nodo de la Boca (TTS - Texto a Voz para que el robot hable)
     tts_node = Node(
         package='text2speech',
         executable='pipertts',
@@ -44,9 +44,19 @@ def generate_launch_description():
         output='screen'
     )
 
+    # 5. Nodo de los Músculos (TaskExecutor - El ejecutor físico de trayectorias)
+    task_executor_node = Node(
+        package='llm_planning',             # Cambia por el nombre de tu paquete si es diferente
+        executable='task_executor',         # Asegúrate de que este sea el nombre del entry_point en tu setup.py
+        name='task_executor_node',
+        output='screen'
+    )
+
+    # Retornamos la lista completa de procesos y nodos que se iniciarán juntos
     return LaunchDescription([
-        vllm_server,
+        #vllm_server,
         asr_node,
         llm_node,
-        tts_node
+        tts_node,
+        task_executor_node                  # <-- Incorporado con éxito
     ])
