@@ -24,78 +24,88 @@ import math
 import numpy
 import time
 
-NAME = "FULL NAME"
+NAME = "Zambrano Miranda Isaac Jaciel"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
 SM_POT_FIELDS = 40
 
 class PotFieldsNode(Node):
+
     def calculate_control(self, goal_x, goal_y, alpha, beta):
-        v,w = 0,0
         v_max = 0.5
         w_max = 0.8
-        #
-        # TODO:
-        # Implement the control law given by:
-        # v = v_max*math.exp(-error_a*error_a/alpha)
-        # w = w_max*(2/(1 + math.exp(-error_a/beta)) - 1)
-        # Set v and w same as simple_move:path_follower
-        # Return v and w as a tuble [v,w]
-        #
-        
-        return [v,w]
-    
+        # error_d: distancia al goal en frame del robot
+        # error_a: angulo al goal en frame del robot
+        error_d = math.sqrt(goal_x**2 + goal_y**2)
+        error_a = math.atan2(goal_y, goal_x)
+        # Ley de control:
+        # v = v_max * exp(-error_a^2 / alpha)  -> rapido cuando apunta al goal
+        # w = w_max * (2/(1+exp(-error_a/beta)) - 1)  -> gira hacia el goal
+        v = v_max * math.exp(-error_a * error_a / alpha)
+        w = w_max * (2.0 / (1.0 + math.exp(-error_a / beta)) - 1.0)
+        return [v, w]
+
     def attraction_force(self, goal_x, goal_y, eta):
-        force_x, force_y = 0,0
-        #
-        # TODO:
-        # Calculate the attraction force, given the robot and goal positions.
-        # Return a tuple of the form [force_x, force_y]
-        # where force_x and force_y are the X and Y components
-        # of the resulting attraction force
-        #
-        
+        # Fuerza atractiva: proporcional al vector hacia el goal
+        # Fa = eta * (goal - robot)
+        # En frame del robot, robot esta en origen, goal en (goal_x, goal_y)
+        force_x = eta * goal_x
+        force_y = eta * goal_y
         return numpy.asarray([force_x, force_y])
 
     def rejection_force(self, laser_readings, zeta, d0):
         N = len(laser_readings)
         if N == 0:
-            return [0, 0]
-        force_x, force_y = 0, 0
-        #
-        # TODO:
-        # Calculate the total rejection force given by the average
-        # of the rejection forces caused by each laser reading.
-        # laser_readings is an array where each element is a tuple [distance, angle]
-        # both measured w.r.t. robot's frame.
-        # See lecture notes for equations to calculate rejection forces.
-        # Return a tuple of the form [force_x, force_y]
-        # where force_x and force_y are the X and Y components
-        # of the resulting rejection force
-        #
-        
+            return numpy.asarray([0.0, 0.0])
+        force_x, force_y = 0.0, 0.0
+        count = 0
+        for dist, angle in laser_readings:
+            # Ignorar lecturas invalidas
+            if math.isinf(dist) or math.isnan(dist) or dist <= 0:
+                continue
+            if dist > d0:
+                # Obstaculo fuera del rango de influencia
+                continue
+            # Fuerza repulsiva segun campo potencial:
+            # Fr = zeta * (1/d - 1/d0) * (1/d^2) * direccion_unitaria_desde_obstaculo
+            # direccion desde obstaculo hacia robot = -direccion al obstaculo
+            obs_x = dist * math.cos(angle)
+            obs_y = dist * math.sin(angle)
+            # Vector del obstaculo al robot (negativo del vector al obstaculo)
+            dir_x = -obs_x / dist
+            dir_y = -obs_y / dist
+            magnitud = zeta * (1.0/dist - 1.0/d0) * (1.0 / (dist * dist))
+            force_x += magnitud * dir_x
+            force_y += magnitud * dir_y
+            count += 1
+        if count > 0:
+            force_x /= count
+            force_y /= count
         return numpy.asarray([force_x, force_y])
 
     def move_by_pot_fields(self, global_goal_x, global_goal_y, epsilon, tol, eta, zeta, d0, alpha, beta):
-        #
-        # TODO
-        # Implement potential fields given a goal point and tunning constants
-        # You can follow these steps:
-        #
-        # get goal wrt robot (call the corresponding function)
-        # WHILE dist_to_goal > tol and rclpy.ok():
-        #    Calculate attraction force
-        #    Calculate rejection force
-        #    Calculate resulting force
-        #    Calculate the next desired position by gradient descend ( P = -epsilon*F)
-        #    Calculate control signals
-        #    Call the publish_speed_and_forces(...) function
-        #    get goal point wrt robot
-        #
-        
-        # END 
-        #
+        goal_x, goal_y = self.get_goal_point_wrt_robot(global_goal_x, global_goal_y)
+        dist_to_goal = math.sqrt(goal_x**2 + goal_y**2)
+
+        while dist_to_goal > tol and rclpy.ok():
+            # Fuerza atractiva hacia el goal
+            Fa = self.attraction_force(goal_x, goal_y, eta)
+            # Fuerza repulsiva de obstaculos (laser)
+            Fr = self.rejection_force(self.laser_readings, zeta, d0)
+            # Fuerza resultante
+            F = Fa + Fr
+            # Siguiente posicion deseada por gradiente descendente
+            next_x = -epsilon * F[0]
+            next_y = -epsilon * F[1]
+            # Senales de control
+            v, w = self.calculate_control(next_x, next_y, alpha, beta)
+            # Publicar velocidad y marcadores
+            self.publish_speed_and_forces(v, w, Fa, Fr, F)
+            # Actualizar posicion del goal en frame del robot
+            goal_x, goal_y = self.get_goal_point_wrt_robot(global_goal_x, global_goal_y)
+            dist_to_goal = math.sqrt(goal_x**2 + goal_y**2)
+
         return
 
     def get_goal_point_wrt_robot(self, goal_x, goal_y):
@@ -190,16 +200,13 @@ class PotFieldsNode(Node):
 
         state = SM_INIT
         while rclpy.ok():
-            
             if state == SM_INIT:
                 print("Ready to execute new goal pose. Waiting for new goal...")
                 state = SM_WAIT_FOR_NEW_GOAL
-
             elif state == SM_WAIT_FOR_NEW_GOAL:
                 if self.new_goal_pose:
                     self.new_goal_pose = False
                     state = SM_POT_FIELDS
-
             elif state == SM_POT_FIELDS:
                 epsilon = self.get_parameter('epsilon').get_parameter_value().double_value
                 tol     = self.get_parameter('tol').get_parameter_value().double_value
@@ -214,10 +221,8 @@ class PotFieldsNode(Node):
                 self.pub_cmd_vel.publish(Twist())
                 print("Goal point reached")
                 state = SM_INIT
-                
             rclpy.spin_once(self)
             time.sleep(0.001)
-    
 
 
 def main(args=None):
