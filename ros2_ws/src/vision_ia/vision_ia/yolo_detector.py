@@ -43,7 +43,8 @@ class YoloDetectorNode(Node):
         # PLAN B: Tu idea de posiciones predeterminadas por si no lo ve
         self.fallback_positions = {
             'refrigerator': (9.8, 0.5),
-            'table': (5.0, 3.0)
+            'table': (3.52, 0.87),
+            'door': (8.24, -3.38)
         }
 
     def camera_callback(self, msg):

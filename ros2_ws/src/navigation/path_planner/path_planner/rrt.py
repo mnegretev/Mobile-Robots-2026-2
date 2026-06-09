@@ -20,11 +20,7 @@ import numpy
 import heapq
 import math
 
-<<<<<<< HEAD
 NAME = "MENDEZ HORTA ALEXANDER"
-=======
-NAME = "Santiago Cruz Plaza"
->>>>>>> origin/cruz_plaza
 
 class TreeNode:
     def __init__(self, x, y, parent=None):
@@ -96,15 +92,9 @@ class RRTNode(Node):
         # Return both, the tree and the path. You can follow these steps:
         #
         while goal_node.parent is None and max_attempts > 0:
-<<<<<<< HEAD
             [x,y] = self.get_random_q(grid_map)
             nearest_node = self.get_nearest_node(tree,x,y)
             new_node = self.get_new_node(nearest_node,x,y, epsilon)
-=======
-            [x, y] = self.get_random_q(grid_map)
-            nearest_node = self.get_nearest_node(tree, x, y)
-            new_node = self.get_new_node(nearest_node, x, y, epsilon)
->>>>>>> origin/cruz_plaza
             if not self.check_collision(nearest_node, new_node, grid_map, epsilon):
                 nearest_node.children.append(new_node)
                 if not self.check_collision(new_node, goal_node, grid_map, epsilon):

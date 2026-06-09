@@ -4,11 +4,7 @@
  *
  * Instructions:
  * Write the code necessary to implement localization by particle filters.
-<<<<<<< HEAD
  * Modify only the sections marked with the TODO comment. 
-=======
- * Modify only the sections marked with the TODO comment.
->>>>>>> origin/cruz_plaza
  */
 
 #include <cstdio>
@@ -32,11 +28,7 @@ public:
 
         ParticleFilterNode():Node("particle_filter")
     {
-<<<<<<< HEAD
 	RCLCPP_INFO(this->get_logger(), "INITIALIZING PARTICLE FILTER NODE - %s", FULL_NAME); 
-=======
-	RCLCPP_INFO(this->get_logger(), "INITIALIZING PARTICLE FILTER NODE - %s", FULL_NAME);
->>>>>>> origin/cruz_plaza
 	particles_N = this->declare_parameter<int>("N", 1000);
 	min_x = this->declare_parameter<double>("min_x", -5.0);
 	min_y = this->declare_parameter<double>("min_y", -4.0);
@@ -59,17 +51,10 @@ public:
 	tf_listener = std::make_shared<tf2_ros::TransformListener>(*tf_buffer);
 	tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
-<<<<<<< HEAD
 	char filename[150];
   snprintf(filename, sizeof(filename), "pf_test_N%d_s2s%.1f_s2m%.1f_s2r%.1f.csv", 
            particles_N, sigma2_sensor, sigma2_movement, sigma2_resampling);
            
-=======
-	//Creación de archivo CSV para registros
-	char filename[150];
-  snprintf(filename, sizeof(filename), "pf_test_N%d_s2s%.1f_s2m%.1f_s2r%.1f.csv",
-           particles_N, sigma2_sensor, sigma2_movement, sigma2_resampling);
->>>>>>> origin/cruz_plaza
   csv_file.open(filename, std::ios::out | std::ios::app);
   if (csv_file.is_open()) {
       csv_file << "Iteracion,GT_X,GT_Y,GT_A,Est_X,Est_Y,Est_A\n";
@@ -78,11 +63,7 @@ public:
       RCLCPP_ERROR(this->get_logger(), "No se pudo crear el archivo CSV");
   }
     }
-<<<<<<< HEAD
     
-=======
-
->>>>>>> origin/cruz_plaza
     void spin()
     {
 	/*
@@ -141,11 +122,7 @@ public:
 		    sigma2_sensor, sigma2_movement, sigma2_resampling);
 	RCLCPP_INFO(this->get_logger(), "min_x=%lf\tmin_y=%lf\tmin_a=%lf", min_x, min_y, min_a);
 	RCLCPP_INFO(this->get_logger(), "max_x=%lf\tmax_y=%lf\tmax_a=%lf", max_x, max_y, max_a);
-<<<<<<< HEAD
 	
-=======
-
->>>>>>> origin/cruz_plaza
 	/*
 	 * Initialize variables to estimate position by particle filters
 	 */
@@ -190,7 +167,6 @@ public:
 		RCLCPP_INFO(this->get_logger(), "Groundtruth pose: x=%lf\ty=%lf\ta=%lf",this->groundtruth_x, this->groundtruth_y, this->groundtruth_a);
 
 		if (csv_file.is_open()) {
-<<<<<<< HEAD
         csv_file << iteration << "," 
                  << this->groundtruth_x << "," << this->groundtruth_y << "," << this->groundtruth_a << ","
                  << estimated_x << "," << estimated_y << "," << estimated_a << "\n";
@@ -198,29 +174,14 @@ public:
     }
 		
 	    }
-=======
-        csv_file << iteration << ","
-                 << this->groundtruth_x << "," << this->groundtruth_y << "," << this->groundtruth_a << ","
-                 << estimated_x << "," << estimated_y << "," << estimated_a << "\n";
-        csv_file.flush();
-		}
-
-		}
->>>>>>> origin/cruz_plaza
 	    tf_odom_to_map.header.stamp = this->get_clock()->now();
 	    this->tf_broadcaster->sendTransform(tf_odom_to_map);
 	    rclcpp::spin_some(this->get_node_base_interface());
 	    rclcpp::sleep_for(std::chrono::milliseconds(50));
 	}
-<<<<<<< HEAD
 	
     }
     
-=======
-
-    }
-
->>>>>>> origin/cruz_plaza
 private:
     int particles_N;
     double min_x;
@@ -239,11 +200,7 @@ private:
     double groundtruth_y;
     double groundtruth_a;
 
-<<<<<<< HEAD
 		std::ofstream csv_file;
-=======
-    std::ofstream csv_file;
->>>>>>> origin/cruz_plaza
 
     geometry_msgs::msg::TransformStamped last_tf_odom;
     sensor_msgs::msg::LaserScan real_scan;
@@ -355,11 +312,7 @@ private:
 	odom_to_base.setOrigin(tf2::Vector3(t_odom.transform.translation.x, t_odom.transform.translation.y, 0));
 	odom_to_base.setRotation(tf2::Quaternion(0, 0, t_odom.transform.rotation.z, t_odom.transform.rotation.w));
 	tf2::Transform map_to_odom = map_to_base*odom_to_base.inverse();
-<<<<<<< HEAD
 	
-=======
-
->>>>>>> origin/cruz_plaza
 	t_map.transform.translation.x = map_to_odom.getOrigin().x();
 	t_map.transform.translation.y = map_to_odom.getOrigin().y();
 	t_map.transform.translation.z = 0;
@@ -383,7 +336,3 @@ int main(int argc, char * argv[])
   rclcpp::shutdown();
   return 0;
 }
-<<<<<<< HEAD
-
-=======
->>>>>>> origin/cruz_plaza

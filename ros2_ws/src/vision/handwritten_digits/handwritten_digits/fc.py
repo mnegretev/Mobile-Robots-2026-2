@@ -11,36 +11,23 @@ import sys
 import random
 import numpy
 import os
-<<<<<<< HEAD
 import time
 import csv
 
 NAME = "MENDEZ HORTA ALEXANDER"
-=======
-
-NAME = "Santiago Cruz Plaza"
->>>>>>> origin/cruz_plaza
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
         #
         # The list 'layers' indicates the number of neurons in each layer.
-<<<<<<< HEAD
         # Remember that the first layer indicates the input dimension. 
-=======
-        # Remember that the first layer indicates the input dimension.
->>>>>>> origin/cruz_plaza
         # All weights and biases are initialized with random values. In each layer (except the first one)
         # we have a matrix of weights where row j contains all the weights of the j-th neuron in that layer,
         # and a vector of biases.
         #
         self.biases =[numpy.random.randn(y,1) for y in layers[1:]] if biases == None else biases
         self.weights=[numpy.random.randn(y,x) for x,y in zip(layers[:-1],layers[1:])] if weights==None else weights
-<<<<<<< HEAD
         
-=======
-
->>>>>>> origin/cruz_plaza
     def feedforward(self, x):
         y = []
         #
@@ -49,17 +36,12 @@ class FCNeuralNetwork(object):
         # Return an array y containg the output of each layer.
         # Remember that input x is considered as the layer zero
         # You can do the following steps:
-<<<<<<< HEAD
         # 
-=======
-        #
->>>>>>> origin/cruz_plaza
         # append x to y
         # FOR i = [0,..,L-1):
         #   u = dot product (W[i], x) + B[i]
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
-<<<<<<< HEAD
         #
         y.append(x)
         for i in range(len(self.weights)):
@@ -68,17 +50,6 @@ class FCNeuralNetwork(object):
             y.append(x)
         return y
 
-=======
-        y.append(x)
-        for i in range(len(self.weights)):
-            u = numpy.dot(self.weights[i], x) + self.biases[i]
-            x = 1.0 / (1.0 + numpy.exp(-u))
-            y.append(x)
-        return y
-
-        return y
-
->>>>>>> origin/cruz_plaza
     def backpropagate(self, x, t):
         y = self.feedforward(x)
         nabla_b = [numpy.zeros(b.shape) for b in self.biases]
@@ -92,7 +63,6 @@ class FCNeuralNetwork(object):
         # You can calculate the gradient following these steps:
         #
         # Calculate delta for the output layer L: delta=(y[-1]-t)*y[-1]*(1-y[-1])
-<<<<<<< HEAD
         # nabla_b of output layer = delta      
         # nabla_w of output layer = delta*y[-2].T where y[-2].T is the transpose of the ouput vector of layer L-1
         # FOR all layers i=[2,L): 
@@ -108,31 +78,6 @@ class FCNeuralNetwork(object):
             delta =  numpy.dot(self.weights[-i+1].T, delta)*(y[-i]*(1 - y[-i]))
             nabla_w[-i] = delta*y[-i-1].T
             nabla_b[-i] = delta
-=======
-        # nabla_b of output layer = delta
-        # nabla_w of output layer = delta*y[-2].T where y[-2].T is the transpose of the ouput vector of layer L-1
-        # FOR all layers i=[2,L):
-        #     delta = (W[-i+1].T * delta)*y[-i]*(1 - y[-i])
-        #     where 'W[-i+1].T' is the transpose of the matrix of weights of layer -i+1 and 'y[-i]' is the output of layer -i
-        #     nabla_b[-i] = delta
-        #     nabla_w[-i] = delta*y[-i-1].T
-
-        y = self.feedforward(x)
-        nabla_b = [numpy.zeros(b.shape) for b in self.biases]
-        nabla_w = [numpy.zeros(w.shape) for w in self.weights]
-
-        # capa de salida
-        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
-        nabla_b[-1] = delta
-        nabla_w[-1] = numpy.dot(delta, y[-2].T)
-
-        # capas ocultas
-        for i in range(2, len(self.weights)+1):
-            delta = numpy.dot(self.weights[-i+1].T, delta) * y[-i] * (1 - y[-i])
-            nabla_b[-i] = delta
-            nabla_w[-i] = numpy.dot(delta, y[-i-1].T)
-
->>>>>>> origin/cruz_plaza
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -140,11 +85,7 @@ class FCNeuralNetwork(object):
         # This function exectutes gradient descend for the subset of examples
         # given by 'batch' with learning rate 'eta'
         # 'batch' is a list of training examples [(x,t), ..., (x,t)]
-<<<<<<< HEAD
         # Function returns the magnitude of calculated gradient 
-=======
-        # Function returns the magnitude of calculated gradient
->>>>>>> origin/cruz_plaza
         #
         batch_nabla_b = [numpy.zeros(b.shape) for b in self.biases]
         batch_nabla_w = [numpy.zeros(w.shape) for w in self.weights]
@@ -165,7 +106,6 @@ class FCNeuralNetwork(object):
         #
         # This function implements the Stochastic Gradient Descend
         #
-<<<<<<< HEAD
         #training_data = list(zip(training_x, training_t))
         #for j in range(epochs):
             #random.shuffle(training_data)
@@ -175,14 +115,11 @@ class FCNeuralNetwork(object):
                 #sys.stdout.write("\rGradient magnitude: %f            " % (nabla_magnitude))
                 #sys.stdout.flush()
             #print("Epoch: " + str(j))
-=======
->>>>>>> origin/cruz_plaza
         training_data = list(zip(training_x, training_t))
         for j in range(epochs):
             random.shuffle(training_data)
             batches = [training_data[k:k+batch_size] for k in range(0,len(training_data), batch_size)]
             for batch in batches:
-<<<<<<< HEAD
                 self.update_with_batch(batch, eta)
 
     def evaluate(self, testing_x, testing_t):
@@ -194,12 +131,6 @@ class FCNeuralNetwork(object):
             if numpy.argmax(y) == numpy.argmax(t):
                 correct_results += 1
         return (correct_results / len(testing_x)) * 100.0
-=======
-                nabla_magnitude = self.update_with_batch(batch, eta)
-                sys.stdout.write("\rGradient magnitude: %f            " % (nabla_magnitude))
-                sys.stdout.flush()
-            print("Epoch: " + str(j))
->>>>>>> origin/cruz_plaza
     #
     ### END OF CLASS
     #
@@ -226,16 +157,10 @@ def load_dataset(folder):
     return training_x, training_t, testing_x, testing_t
 
 def main(args=None):
-<<<<<<< HEAD
     """
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
     
-=======
-    print("TRAINING A NEURAL NETWORK - " + NAME)
-    dataset_folder = os.path.join("../dataset")
-
->>>>>>> origin/cruz_plaza
     epochs        = 3
     batch_size    = 50
     learning_rate = 1.0
@@ -256,7 +181,6 @@ def main(args=None):
         print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
         cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
         cmd = cv2.waitKey(0)
-<<<<<<< HEAD
     """
     print("INICIANDO BATERÍA DE PRUEBAS AUTOMATIZADAS - " + NAME)
     dataset_folder = os.path.join("../dataset")
@@ -307,9 +231,6 @@ def main(args=None):
         writer.writerows(results)
     print(f"\n¡Pruebas terminadas! Resultados guardados en {filename}")
     
-=======
-
->>>>>>> origin/cruz_plaza
 
 
 if __name__ == '__main__':
