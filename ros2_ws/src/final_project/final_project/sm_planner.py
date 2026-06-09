@@ -7,6 +7,7 @@ from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import requests
 import json
 import time
+import os
 
 SM_WAIT_FOR_COMMAND  = 0
 SM_INTERPRET_COMMAND = 10
@@ -121,8 +122,13 @@ class SmPlannerNode(Node):
         self.create_subscription(Bool,   "/navigation/goal_reached", self._cb_goal_reached, 1)
         self.create_subscription(String, "/yolo/detections",         self._cb_yolo,         1)
         self.yolo_detections  = []
-        self.object_memory    = {}  # {clase_yolo: nombre_lugar_donde_se_vio}
-        self.current_location = "home"  # ubicacion actual del robot
+        self.object_memory    = {}
+        self.current_location = "home"
+        log_path = os.path.expanduser("~/robot_activity_log.txt")
+        self._log_file = open(log_path, "a")
+        self._log_file.write(f"\n=== Sesion iniciada: {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+        self._log_file.flush()
+        self.get_logger().info(f"Log de actividad en: {log_path}")
         self.get_logger().info("Esperando instruccion en /sp_rec/recognized ...")
 
     # Frases de ruido que Whisper genera con silencio o audio del TTS
@@ -135,42 +141,56 @@ class SmPlannerNode(Node):
     # Wake words que activan al robot
     WAKE_WORDS = ["robot", "oye robot", "hey robot", "hola robot"]
 
+    CANCEL_WORDS = ["cancela", "cancel", "para todo", "aborta", "detén todo", "deten todo"]
+
     def _cb_recognized(self, msg):
-        if self.state == SM_WAIT_FOR_COMMAND:
-            text = msg.data.strip().lower()
-            if len(text) < 3:
-                return
-            # Filtrar ruido de Whisper
-            if any(noise in text for noise in self.NOISE_FILTERS):
-                self.get_logger().warn(f"Texto filtrado como ruido: '{text}'")
-                return
-            # Cooldown inteligente post-TTS
-            if hasattr(self, '_last_tts_time'):
-                elapsed = time.time() - self._last_tts_time
-                tts_duration = getattr(self, '_last_tts_duration', 3.0)
-                cooldown = max(tts_duration + 1.5, 3.0)
-                if elapsed < cooldown:
-                    self.get_logger().warn(
-                        f"Cooldown TTS activo ({elapsed:.1f}s/{cooldown:.1f}s), ignorando: '{text}'"
-                    )
-                    return
-            # Wake word: solo responder si la instruccion contiene "robot"
-            wake_detected = any(ww in text[:25] for ww in self.WAKE_WORDS)
-            if not wake_detected:
-                self.get_logger().info(f"Sin wake word, ignorando: '{text}'")
-                return
-            # Quitar el wake word para quedarse con la instruccion
-            command = text
+        text = msg.data.strip().lower()
+        if len(text) < 3:
+            return
+        # Filtrar ruido de Whisper
+        if any(noise in text for noise in self.NOISE_FILTERS):
+            self.get_logger().warn(f"Texto filtrado como ruido: '{text}'")
+            return
+        # Cancelacion global: funciona en CUALQUIER estado
+        wake_detected = any(ww in text[:25] for ww in self.WAKE_WORDS)
+        if wake_detected:
+            command_text = text
             for ww in sorted(self.WAKE_WORDS, key=len, reverse=True):
-                if ww in command[:25]:
-                    command = command.replace(ww, "", 1).strip(" ,.:").strip()
+                if ww in command_text[:25]:
+                    command_text = command_text.replace(ww, "", 1).strip(" ,.:").strip()
                     break
-            if len(command) < 2:
-                self._speak("Dime que quieres que haga.")
+            if any(cw in command_text for cw in self.CANCEL_WORDS):
+                self.get_logger().warn("[CANCEL] Cancelacion recibida.")
+                self._cancel_all()
                 return
-            self.command     = command
-            self.new_command = True
-            self.get_logger().info(f"Wake word detectado. Instruccion: '{self.command}'")
+        if self.state != SM_WAIT_FOR_COMMAND:
+            return
+        # Cooldown inteligente post-TTS
+        if hasattr(self, '_last_tts_time'):
+            elapsed = time.time() - self._last_tts_time
+            tts_duration = getattr(self, '_last_tts_duration', 3.0)
+            cooldown = max(tts_duration + 1.5, 3.0)
+            if elapsed < cooldown:
+                self.get_logger().warn(
+                    f"Cooldown TTS activo ({elapsed:.1f}s/{cooldown:.1f}s), ignorando: '{text}'"
+                )
+                return
+        # Wake word
+        if not wake_detected:
+            self.get_logger().info(f"Sin wake word, ignorando: '{text}'")
+            return
+        command = text
+        for ww in sorted(self.WAKE_WORDS, key=len, reverse=True):
+            if ww in command[:25]:
+                command = command.replace(ww, "", 1).strip(" ,.:").strip()
+                break
+        if len(command) < 2:
+            self._speak("Dime que quieres que haga.")
+            return
+        self.command     = command
+        self.new_command = True
+        self._log(f"INSTRUCCION: {self.command}")
+        self.get_logger().info(f"Wake word detectado. Instruccion: '{self.command}'")
 
     def _cb_goal_reached(self, msg):
         if msg.data:
@@ -206,6 +226,7 @@ class SmPlannerNode(Node):
         msg.pose.orientation.w = loc["w"]
         self.pub_goal.publish(msg)
         self.get_logger().info(f"Meta publicada: {location_key} ({loc['x']}, {loc['y']})")
+        self._log(f"NAVEGANDO A: {location_key}")
         return True
 
     def _speak(self, text):
@@ -213,6 +234,7 @@ class SmPlannerNode(Node):
         self._last_tts_duration = max(len(text) * 0.08, 2.0)
         self.pub_tts.publish(String(data=text))
         self.get_logger().info(f"TTS: {text}")
+        self._log(f"ROBOT DIJO: {text}")
 
     def _sleep(self, seconds):
         steps = int(seconds / 0.05)
@@ -436,6 +458,26 @@ class SmPlannerNode(Node):
         self._speak("Patrulla completada. Todo en orden.")
         self.get_logger().info("[PATROL] Patrulla completada.")
 
+    def _log(self, event: str):
+        try:
+            ts = time.strftime("%H:%M:%S")
+            self._log_file.write(f"[{ts}] {event}\n")
+            self._log_file.flush()
+        except Exception:
+            pass
+
+    def _cancel_all(self):
+        """Cancela cualquier tarea en progreso y regresa a esperar."""
+        from geometry_msgs.msg import Twist
+        self.pub_cmd_vel.publish(Twist())  # detener robot
+        self.plan        = []
+        self.plan_index  = 0
+        self.goal_reached = False
+        self.nav_timeout  = 0
+        self.state       = SM_WAIT_FOR_COMMAND
+        self._speak("Tarea cancelada. Listo para nuevas instrucciones.")
+        self.get_logger().info("[CANCEL] Sistema reseteado.")
+
     def _build_status_report(self) -> str:
         mem = self.object_memory
         loc = self.current_location.replace("_", " ")
@@ -519,11 +561,16 @@ class SmPlannerNode(Node):
                 if self.goal_reached:
                     self.goal_reached = False
                     self.nav_timeout  = 0
+                    # Anunciar llegada al destino
+                    dest = self.current_location.replace("_", " ")
+                    self._speak(f"Llegue a {dest}.")
+                    self._sleep(2.0)
                     self.state = SM_EXECUTE_PLAN
                 else:
                     self.nav_timeout += 1
                     if self.nav_timeout > NAV_TIMEOUT_CYCLES:
                         self.get_logger().warn("Timeout de navegacion. Continuando plan.")
+                        self._speak(f"No pude llegar a {self.current_location.replace('_',' ')}.")
                         self.nav_timeout  = 0
                         self.goal_reached = False
                         self.state = SM_EXECUTE_PLAN
