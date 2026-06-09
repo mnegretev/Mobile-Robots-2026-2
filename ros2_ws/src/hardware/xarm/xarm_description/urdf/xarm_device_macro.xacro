@@ -20,7 +20,7 @@
     load_gazebo_plugin:=false 
     add_realsense_d435i:=false
     add_d435i_links:=true
-    use_gazebo_camera:=false
+    use_gazebo_camera:=true
     add_other_geometry:=false 
     geometry_type:='box'
     geometry_mass:='0.1'
