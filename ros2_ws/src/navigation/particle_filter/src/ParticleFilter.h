@@ -52,10 +52,9 @@ public:
 	
 	for (size_t i =0; i < particles.size(); i++) {
 		
-		particles[i].x = particles[i].x + delta_x * cos(particles[i].theta) - delta_y * sin (particles[i].theta) + rnd.gaussian (0,sigma2);
-		particles[i].y = particles[i].y + delta_x * sin(particles[i].theta) + delta_y * cos (particles[i].theta) + rnd.gaussian (0,sigma2);
-		particles[i].theta = particles[i].theta + delta_t + rnd.gaussian (0,sigma2);
-		
+				 particles[i].x += delta_x*cos(particles[i].theta) - delta_y*sin(particles[i].theta) + rnd.gaussian(0, sigma2);
+                 particles[i].y += delta_x*sin(particles[i].theta) + delta_y*cos(particles[i].theta) + rnd.gaussian(0, sigma2);
+                 particles[i].theta += delta_t + rnd.gaussian(0, sigma2);
 	}
     }
 
@@ -112,7 +111,7 @@ public:
 
 		for (size_t j = 0; j < simulated_scans[i].ranges.size(); j ++) {//Each scan
 			if (std::isfinite(simulated_scans[i].ranges[j]) && std::isfinite(real_scan.ranges[j*downsampling]))
-				delta_i += sqrt(pow((real_scan.ranges[j*downsampling]-simulated_scans[i].ranges[j]),2));
+				delta_i += sqrt(pow((simulated_scans[i].ranges[j]-real_scan.ranges[j*downsampling]),2));
 				delta_valids ++;
 			}
 
@@ -122,6 +121,7 @@ public:
 		sum_similarities += similarities[i];
 		} else {
 		similarities[i] = 0.0;
+		sum_similarities += similarities[i];
 		}
 
 	}
@@ -133,7 +133,7 @@ public:
 	}
 	} else {
 		for (size_t i = 0; i < similarities.size(); i ++) { 
-		similarities[i] = 1/similarities.size(); 
+		similarities[i] = 1.0/similarities.size(); 
 	}
 	}
 
