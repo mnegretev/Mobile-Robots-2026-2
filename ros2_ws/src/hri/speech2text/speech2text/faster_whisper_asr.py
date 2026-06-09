@@ -21,8 +21,8 @@ class FasterWhisperNode(Node):
     def __init__(self):
         super().__init__("faster_whisper_node")
         self.get_logger().info("INITIALIZING FASTER WHISPER NODE")
-        self.model_size = "small"
-        self.pwr_threshold = 0.05
+        self.model_size = "tiny"
+        self.pwr_threshold = 0.02
         self.pub_recognized = self.create_publisher(String, '/sp_rec/recognized', 1)
 
     def spin(self):
@@ -63,7 +63,7 @@ class FasterWhisperNode(Node):
             wf.writeframes(b''.join(frames))
             wf.close()
 
-            segments, info = model.transcribe(WAVE_OUTPUT_FILENAME, beam_size=5, language="zh")
+            segments, info = model.transcribe(WAVE_OUTPUT_FILENAME, beam_size=5, language="es")
             self.get_logger().info("Detected language '%s' with probability %f" % (info.language, info.language_probability))
             for segment in segments:
                 self.get_logger().info("[%.2fs -> %.2fs] %s" % (segment.start, segment.end, segment.text))

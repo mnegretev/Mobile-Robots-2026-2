@@ -20,12 +20,12 @@ def generate_launch_description():
             executable='lira_gui_node',
             parameters=[{'use_sim_time':True}]
         ),
-        Node(
-            package='rviz2',
-            executable='rviz2',
-            name='rviz2',
-            arguments=['-d', rviz_config_file,'--ros-args', '-p', 'use_sim_time:=True',],
-        ),        
+       # Node(
+           # package='rviz2',
+            #executable='rviz2',
+            #name='rviz2',
+            #arguments=['-d', rviz_config_file,'--ros-args', '-p', 'use_sim_time:=True',],
+        #),        
         Node(
             package='nav2_map_server',
             executable='map_server',
