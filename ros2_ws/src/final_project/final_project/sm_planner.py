@@ -71,7 +71,6 @@ SYSTEM_PROMPT = (
     "Ejemplos:\n"
     "Instruccion: ve al refri\n"
     "NAVIGATE refrigerator\n"
-    "SPEAK Llegue al refrigerador.\n"
     "END\n"
     "Instruccion: robot vuela\n"
     "SPEAK No puedo volar.\n"
@@ -453,6 +452,10 @@ class SmPlannerNode(Node):
                     rclpy.spin_once(self, timeout_sec=0)
                     self.get_clock().sleep_for(Duration(seconds=0.05))
                     self.nav_timeout += 1
+                    # Verificar cancelacion durante patrulla
+                    if self.state == SM_WAIT_FOR_COMMAND:
+                        self.get_logger().info("[PATROL] Cancelada.")
+                        return
                 self.goal_reached = False
                 self.nav_timeout  = 0
         self._speak("Patrulla completada. Todo en orden.")
@@ -468,7 +471,6 @@ class SmPlannerNode(Node):
 
     def _cancel_all(self):
         """Cancela cualquier tarea en progreso y regresa a esperar."""
-        from geometry_msgs.msg import Twist
         self.pub_cmd_vel.publish(Twist())  # detener robot
         self.plan        = []
         self.plan_index  = 0
