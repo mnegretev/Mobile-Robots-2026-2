@@ -1,86 +1,104 @@
-import requests
 import rclpy
 from rclpy.node import Node
-from rclpy.duration import Duration
 from std_msgs.msg import String
-from ament_index_python.packages import get_package_share_directory
-import os
-
-SM_INIT = 0
-SM_LOAD_INITIAL_PROMPTS = 10
-SM_LOOK_FOR_PERSON = 20
-SM_RANDOM_MOVEMENT = 30
-SM_APPROACH_TO_PERSON = 40
-SM_INITIAL_INTERACTION = 50
-SM_INTERACTION = 60
-
+import requests
+import json
 
 class OllamaPlanningNode(Node):
-    def load_prompts(self, path):
-        lines = open(path).readlines()
-        prompts = []
-        for l in lines:
-            s = l.rstrip()
-            if(len(s)>3):
-                prompts.append(s)
-        return prompts
-
-    def send_prompt(self, msg):
-        self.msg_history.append({"role": "user", "content": msg})
-        resp = requests.post(self.url_api, json={"model": "llama3", "messages": self.msg_history, "stream":False, "options":{"num_ctx":8192}})
-        self.msg_history.append(resp.json()["message"])
-
-    def callback_prompt(self, msg):
-        if self.new_prompt:
-            self.get_logger().info("Ignoring received prompt...")
-            return
-        self.prompt = msg.data
-        self.new_prompt = True
-    
     def __init__(self):
-        super().__init__("ollama_planning_node")
-        self.get_logger().info("INITIALIZING OLLAMA PLANNING NODE")
-        self.msg_history = []
-        self.url_api = "http://localhost:11434/api/chat"
-        self.prompt = ""
-        self.new_prompt = False
-        self.sub_query = self.create_subscription(String, '/sp_rec/recognized', self.callback_prompt, 1)
-        self.pub_tts = self.create_publisher(String, '/tts_query', 1)
-
-    def spin(self):
-        prompts_file = os.path.join(get_package_share_directory('llm_planning'), "config","Prompts.txt")
-        prompts = self.load_prompts(prompts_file)
-        self.send_prompt("Genera respuestas de máximo veinte palabras")
-        for p in prompts:
-            self.get_logger().info("Sending prompt: " + p)
-            self.send_prompt(p)
-            self.get_logger().info("Response received: " + self.msg_history[-1]["content"])
-        self.send_prompt("Da respuestas muy sintetizadas y concisas")
+        super().__init__('ollama_planning_node')
+        self.get_logger().info('INITIALIZING OLLAMA PLANNING NODE')
         
-        self.get_logger().info("Waiting for new prompt...")
-        while rclpy.ok():
-            if(self.new_prompt):
-                self.get_logger().info("Sending prompt: " + self.prompt)
-                self.send_prompt(self.prompt)
-                self.get_logger().info("Response received: " + self.msg_history[-1]["content"])
-                self.pub_tts.publish(String(data=self.msg_history[-1]["content"]))
-                delay_counter = 1.9*len(self.msg_history[-1]["content"])+20
-                while delay_counter > 0 and rclpy.ok():
-                    rclpy.spin_once(self, timeout_sec=0)
-                    self.get_clock().sleep_for(Duration(seconds=0.05))
-                    delay_counter -= 1
-                self.get_logger().info("Waiting for new prompt")
-                self.new_prompt = False
-            rclpy.spin_once(self, timeout_sec=0)
-            self.get_clock().sleep_for(Duration(seconds=0.05))
+        # Configuración de Ollama
+        self.url_api = "http://localhost:11434/api/generate"
+        self.model = "llama3"
+        
+        # Historial de conversación
+        self.msg_history = []
+        
+        # Publicador para respuestas
+        self.publisher = self.create_publisher(String, '/llm_response', 10)
+        
+        # Timer para enviar prompts automáticos
+        self.timer = self.create_timer(10, self.timer_callback)
+        self.prompt_count = 0
+        
+        self.get_logger().info('OLLAMA PLANNING NODE READY')
+        
+    def send_prompt(self, prompt):
+        """Envía un prompt a Ollama y publica la respuesta"""
+        self.get_logger().info(f'Sending prompt: {prompt}')
+        
+        # Preparar el payload para /api/generate
+        payload = {
+            "model": self.model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "num_ctx": 8192,
+                "temperature": 0.7
+            }
+        }
+        
+        try:
+            # Enviar petición a Ollama
+            resp = requests.post(self.url_api, json=payload, timeout=30)
+            
+            # Verificar respuesta
+            if resp.status_code != 200:
+                self.get_logger().error(f'Ollama error {resp.status_code}: {resp.text}')
+                return None
+            
+            # Parsear respuesta
+            data = resp.json()
+            
+            # Extraer el texto de respuesta
+            if 'response' in data:
+                response_text = data['response']
+                self.get_logger().info(f'Response: {response_text[:200]}')
+                
+                # Publicar en tópico ROS2
+                msg = String()
+                msg.data = response_text
+                self.publisher.publish(msg)
+                
+                return response_text
+            else:
+                self.get_logger().error(f'Unexpected response format: {data}')
+                return None
+                
+        except requests.exceptions.ConnectionError:
+            self.get_logger().error('Cannot connect to Ollama. Make sure it is running with: OLLAMA_NUM_GPU=0 ollama serve')
+            return None
+        except Exception as e:
+            self.get_logger().error(f'Error: {e}')
+            return None
+    
+    def timer_callback(self):
+        """Envía prompts automáticos cada cierto tiempo"""
+        prompts = [
+            "Genera respuestas de máximo veinte palabras",
+            "Eres un robot de servicio, responde de forma amable",
+            "¿Cómo puedes ayudar a un usuario?"
+        ]
+        
+        if self.prompt_count < len(prompts):
+            self.send_prompt(prompts[self.prompt_count])
+            self.prompt_count += 1
+        else:
+            self.get_logger().info('Waiting for new prompt...')
 
 def main(args=None):
     rclpy.init(args=args)
-    ollama_planning_node= OllamaPlanningNode()
-    ollama_planning_node.spin()
-    ollama_planning_node.destroy_node()
-    rclpy.shutdown()
-
+    node = OllamaPlanningNode()
     
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info('Shutting down...')
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
 if __name__ == '__main__':
     main()

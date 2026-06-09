@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>hri_proyecto</name>
+  <version>0.1.0</version>
+  <description>
+    Brain node for a voice-controlled robot. Receives transcribed speech,
+    interprets intent via an Ollama LLM, and dispatches navigation goals
+    or TTS responses accordingly.
+  </description>
+  <maintainer email="ducky@todo.com">Ducky</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>std_msgs</depend>
+  <depend>geometry_msgs</depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

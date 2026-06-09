@@ -8,7 +8,7 @@ import numpy
 import os
 from ultralytics import YOLO
 
-NAME = "FULL NAME"
+NAME = "Vera Diaz Francisco"
 
 class YoloNode(Node):
     def callback_img(self, msg):
@@ -34,7 +34,7 @@ class YoloNode(Node):
         #model_path  = self.get_parameter('model_path').get_parameter_value().string_value
         print(f'Initializing yolo model from path :{model_path}')
         self.model = YOLO(model_path)
-        self.model.to('cuda')
+        self.model.to('cpu')
         print("Model initialized succesfully")
         self.sub_img = self.create_subscription(Image, '/camera/color/image_raw', self.callback_img, 1)
 
