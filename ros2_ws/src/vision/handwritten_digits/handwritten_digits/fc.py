@@ -146,14 +146,13 @@ def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
     
-    learning_rate = 0.5
+    learning_rate = 10.0
     epochs        = 3
-    batch_size    = 10
+    batch_size    = 100
 
     training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
-    # nn = FCNeuralNetwork([784,30,10])
-    nn = FCNeuralNetwork([784,30,4])  
-    # si usas etiquetas binarias
+    nn = FCNeuralNetwork([784,30,10])
+    # nn = FCNeuralNetwork([784,30,4])  # si usas etiquetas binarias
 
     # entrenamiento normal
     nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
