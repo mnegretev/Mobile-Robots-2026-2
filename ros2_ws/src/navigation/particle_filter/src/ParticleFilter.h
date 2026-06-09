@@ -6,6 +6,9 @@
  * Write the code necessary to implement localization by particle filters.
  * Modify only the sections marked with the TODO comment. 
  */
+#include <vector>
+#include <cmath>
+#include <numeric>
 #include "particle_filter/ray_tracer.h"
 #define FULL_NAME "Francisco Vera Diaz"
 

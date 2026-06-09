@@ -39,6 +39,7 @@ class AStarNode(Node):
         in_open_list[start_r, start_c] = True
         g_values    [start_r, start_c] = 0
         [row, col]= [start_r, start_c]   #Current node
+        path = []  # will store resulting path
         #
         # TODO:
         # Implement the A* algorithm for path planning
@@ -87,9 +88,14 @@ class AStarNode(Node):
         
         
         path = []
-        while parent_nodes[goal_r, goal_c][0] != -1:
-            path.insert(0, [goal_r, goal_c])
-            [goal_r, goal_c] = parent_nodes[goal_r, goal_c]
+        # verify goal is within bounds and was reached
+        if goal_r >= 0 and goal_r < height and goal_c >= 0 and goal_c < width:
+            if parent_nodes[goal_r, goal_c][0] != -1 or [goal_r, goal_c] == [start_r, start_c]:
+                # include goal
+                path.insert(0, [goal_r, goal_c])
+                while parent_nodes[goal_r, goal_c][0] != -1:
+                    [goal_r, goal_c] = parent_nodes[goal_r, goal_c]
+                    path.insert(0, [goal_r, goal_c])
         return path
 
     def get_maps(self):

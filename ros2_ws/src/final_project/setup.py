@@ -17,15 +17,13 @@ setup(
     zip_safe=True,
     maintainer='thedoctor',
     maintainer_email='marco.negrete@ingenieria.unam.edu',
-    description='TODO: Package description',
+    description='Integración de ASR, LLM Planning y control de robot doméstico',
     license='LGPL-3.0-only',
-    extras_require={
-        'test': [
-            'pytest',
-        ],
-    },
+    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'faster_whisper_asr = final_project.faster_whisper_asr:main',
+            'ollama_planning = final_project.ollama_planning:main',
             'sm_planner = final_project.sm_planner:main'
         ],
     },

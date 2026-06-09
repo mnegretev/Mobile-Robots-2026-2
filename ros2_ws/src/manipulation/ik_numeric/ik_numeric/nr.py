@@ -88,6 +88,7 @@ class IKNewtonRaphsonNode(Node):
         #     Get xyz from the resulting H
         #
 <<<<<<< HEAD
+<<<<<<< HEAD
 
         H = numpy.identity(4)
         for i in range(6):
@@ -105,11 +106,22 @@ class IKNewtonRaphsonNode(Node):
                                [0,0,0,1]])
             #print(R)
 >>>>>>> main
+=======
+        H = numpy.eye(4)
+        for i,q in enumerate(Q):
+            R = numpy.array([[numpy.cos(q), -numpy.sin(q), 0, 0],
+                             [numpy.sin(q), numpy.cos(q), 0, 0],
+                             [0, 0, 1, 0],
+                             [0, 0, 0, 1]])
+>>>>>>> galicia_rioja
             H = H @ Hs[i] @ R
         H = H @ Hs[6]
-        R,P,Y = self.matrix_to_euler_xyz(H)
-        x,y,z = H[0,3], H[1,3], H[2,3]
+        x = H[0, 3]
+        y = H[1, 3]
+        z = H[2, 3]
+        R, P, Y = self.matrix_to_euler_xyz(H[:3, :3])
         return numpy.asarray([x, y, z, R, P, Y])
+
 
     def jacobian(self, Q):
         delta_q = 0.000001

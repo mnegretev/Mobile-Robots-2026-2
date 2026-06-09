@@ -1,0 +1,44 @@
+{
+  "locations": {
+    "kitchen": {
+      "position": [-3.0, 0.0],
+      "orientation": 0.0,
+      "description": "Kitchen area"
+    },
+    "living_room": {
+      "position": [-1.0, -2.0],
+      "orientation": 0.7854,
+      "description": "Living room area"
+    },
+    "bedroom": {
+      "position": [2.0, -1.0],
+      "orientation": -1.5708,
+      "description": "Bedroom area"
+    },
+    "bathroom": {
+      "position": [3.0, 1.0],
+      "orientation": 3.1416,
+      "description": "Bathroom area"
+    },
+    "hallway": {
+      "position": [0.0, 0.0],
+      "orientation": 0.0,
+      "description": "Hallway/center area"
+    },
+    "entrance": {
+      "position": [-4.0, -3.0],
+      "orientation": 0.7854,
+      "description": "Entrance/door area"
+    },
+    "garage": {
+      "position": [4.0, 3.0],
+      "orientation": 3.1416,
+      "description": "Garage area"
+    }
+  },
+  "notes": {
+    "position": "List [x, y] in meters relative to map frame",
+    "orientation": "Angle in radians (0 = +X direction, π/2 = +Y direction)",
+    "add_custom_locations": "Add more locations following the same format"
+  }
+}

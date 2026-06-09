@@ -93,7 +93,7 @@ def generate_launch_description():
         executable="stanley",
         name='stanley',
         output='screen',
-        parameters=[{'Kd':1.0}, {'Ka':1.0}]
+        parameters=[{'Kd':5.0}, {'Ka':5.0}]
     )
         
     return LaunchDescription([

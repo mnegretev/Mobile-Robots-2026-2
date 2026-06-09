@@ -93,6 +93,14 @@ class PurePursuitNode(Node):
         rclpy.spin_once(self)
         self.get_clock().sleep_for(Duration(seconds=0.005))
 
+    def save_desired_path(self, path):
+        try:
+            with open(self.desired_path_file, "w") as f:
+                for p in path.poses:
+                    f.write(str(p.pose.position.x) + "," + str(p.pose.position.y) + "\n")
+        except Exception as e:
+            self.get_logger().error(f"Failed to save desired path: {e}")
+
     def get_robot_pose(self):
         try:
             t = self.tf_buffer.lookup_transform("map","base_link", rclpy.time.Time())
@@ -117,7 +125,8 @@ class PurePursuitNode(Node):
         super().__init__("pure_pursuit_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY PURE PURSUIT NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = get_package_share_directory('path_follower') + "/data.txt"
+        self.desired_path_file = get_package_share_directory('path_follower') + "/desired_path.txt"
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
@@ -196,9 +205,14 @@ class PurePursuitNode(Node):
                     self.get_logger().info("Path smoothed succesfully")
                 else:
                     self.get_logger().info("Smooth path service is not available")
+                # Save the desired path so we can compare it later with the executed trajectory
+                self.save_desired_path(path)
                 state = SM_FOLLOWING_PATH
 
             elif state == SM_FOLLOWING_PATH:
+                # Reset logging for this run
+                self.nav_data = []
+
                 v_max = self.get_parameter('v_max').get_parameter_value().double_value
                 w_max = self.get_parameter('w_max').get_parameter_value().double_value
                 alpha = self.get_parameter('alpha').get_parameter_value().double_value

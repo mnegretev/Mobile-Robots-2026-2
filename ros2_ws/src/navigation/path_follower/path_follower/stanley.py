@@ -23,7 +23,7 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
-NAME = "FULL NAME"
+NAME = "Galicia Rioja Angel Daniel"
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -106,6 +106,14 @@ class StanleyNode(Node):
             rclpy.spin_once(self)
             self.get_clock().sleep_for(Duration(seconds=0.005))
 
+    def save_desired_path(self, path):
+        try:
+            with open(self.desired_path_file, "w") as f:
+                for p in path.poses:
+                    f.write(str(p.pose.position.x) + "," + str(p.pose.position.y) + "\n")
+        except Exception as e:
+            self.get_logger().error(f"Failed to save desired path: {e}")
+
     def get_robot_pose(self):
         try:
             t = self.tf_buffer.lookup_transform("map","base_link", rclpy.time.Time())
@@ -130,7 +138,8 @@ class StanleyNode(Node):
         super().__init__("stanley_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY STANLEY NODE ...")
         self.nav_data = []
-        self.data_file = get_package_share_directory('path_follower') + "/data.txt" 
+        self.data_file = get_package_share_directory('path_follower') + "/data.txt"
+        self.desired_path_file = get_package_share_directory('path_follower') + "/desired_path.txt"
         self.robot_pose = numpy.asarray([0.0,0.0])
         self.robot_a = 0.0
         self.new_goal_pose = False
