@@ -3,6 +3,7 @@ from rclpy.node import Node
 from rclpy.duration import Duration
 from std_msgs.msg import String, Bool
 from geometry_msgs.msg import PoseStamped, Twist
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 import requests
 import json
 import time
@@ -53,9 +54,10 @@ SYSTEM_PROMPT = (
     "Acciones disponibles:\n"
     "  NAVIGATE lugar  -> mueve el robot al lugar indicado\n"
     "  SPEAK texto     -> el robot dice el texto en voz alta\n"
-    "  DETECT objeto   -> el robot busca el objeto con la camara\n"
-    "  STOP            -> detiene el robot\n"
-    "  END             -> fin del plan\n"
+    "  DETECT objeto      -> el robot busca el objeto con la camara\n"
+    "  MANIPULATE objeto  -> el robot intenta manipular el objeto con el brazo\n"
+    "  STOP               -> detiene el robot\n"
+    "  END                -> fin del plan\n"
     "Reglas:\n"
     "1. Responde solo con acciones, una por linea, sin numeracion ni explicaciones.\n"
     "2. Termina siempre con END.\n"
@@ -109,6 +111,9 @@ class SmPlannerNode(Node):
         self.pub_goal    = self.create_publisher(PoseStamped, "/goal_pose", 1)
         self.pub_tts     = self.create_publisher(String,      "/tts_query", 1)
         self.pub_cmd_vel = self.create_publisher(Twist,       "/cmd_vel",   1)
+        self.pub_traj    = self.create_publisher(
+            JointTrajectory, "/xarm6_traj_controller/joint_trajectory", 1
+        )
         self.create_subscription(String, "/sp_rec/recognized",       self._cb_recognized,   1)
         self.create_subscription(Bool,   "/navigation/goal_reached", self._cb_goal_reached, 1)
         self.create_subscription(String, "/yolo/detections",         self._cb_yolo,         1)
@@ -233,6 +238,9 @@ class SmPlannerNode(Node):
             elif upper.startswith("DETECT"):
                 parts = line.split(None, 1)
                 plan.append(("DETECT", parts[1].strip() if len(parts) == 2 else "objeto"))
+            elif upper.startswith("MANIPULATE"):
+                parts = line.split(None, 1)
+                plan.append(("MANIPULATE", parts[1].strip() if len(parts) == 2 else "objeto"))
             elif upper == "STOP":
                 plan.append(("STOP", ""))
             elif upper == "END":
@@ -301,6 +309,53 @@ class SmPlannerNode(Node):
             self._speak(f"No encontre {target}.")
         self._sleep(2.0)
 
+    def _send_arm_trajectory(self, positions, duration_sec=2):
+        """Envia una trayectoria al brazo xarm6."""
+        msg = JointTrajectory()
+        msg.header.stamp = self.get_clock().now().to_msg()
+        msg.joint_names  = ["joint1","joint2","joint3","joint4","joint5","joint6"]
+        p = JointTrajectoryPoint()
+        p.positions = positions
+        p.time_from_start.sec = duration_sec
+        msg.points.append(p)
+        self.pub_traj.publish(msg)
+
+    def _manipulate(self, target):
+        """Intenta manipular el objeto indicado con el brazo xarm6."""
+        self.get_logger().info(f"[MANIPULATE] Intentando manipular: {target}")
+        self._speak(f"Intentare manipular {target}.")
+        self._sleep(2.0)
+
+        # Posicion HOME: brazo recogido
+        HOME   = [0.0,  0.0,  0.0,  0.0,  0.0,  0.0]
+        # Posicion de alcance frontal: brazo extendido hacia adelante
+        REACH  = [0.0, -0.5, -1.4,  0.0,  0.3,  0.0]
+        # Posicion de agarre: brazo bajo apuntando al frente
+        GRASP  = [0.0, -0.8, -1.2,  0.0,  0.6,  0.0]
+
+        try:
+            # 1. Mover a posicion de alcance
+            self.get_logger().info("[MANIPULATE] Moviendo a posicion de alcance...")
+            self._send_arm_trajectory(REACH, duration_sec=2)
+            self._sleep(3.0)
+
+            # 2. Mover a posicion de agarre
+            self.get_logger().info("[MANIPULATE] Moviendo a posicion de agarre...")
+            self._send_arm_trajectory(GRASP, duration_sec=2)
+            self._sleep(3.0)
+
+            # 3. Regresar a HOME
+            self.get_logger().info("[MANIPULATE] Regresando a posicion HOME...")
+            self._send_arm_trajectory(HOME, duration_sec=2)
+            self._sleep(3.0)
+
+            self._speak("Manipulacion completada.")
+            self.get_logger().info("[MANIPULATE] Completado.")
+
+        except Exception as e:
+            self.get_logger().warn(f"[MANIPULATE] Error: {e}")
+            self._speak("No pude completar la manipulacion.")
+
     def spin(self):
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0)
@@ -342,6 +397,8 @@ class SmPlannerNode(Node):
                     self._sleep(3.0)
                 elif action == "DETECT":
                     self._detect_object(arg)
+                elif action == "MANIPULATE":
+                    self._manipulate(arg)
                 elif action == "STOP":
                     self._speak("Deteniendome.")
                     self._sleep(1.0)
