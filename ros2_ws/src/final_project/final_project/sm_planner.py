@@ -27,6 +27,12 @@ LOCATIONS = {
     "stove":        {"x":  5.59, "y":  0.78, "w": 1.0},  # calibrado en RViz
 }
 
+import unicodedata as _UD
+
+def _norm(s):
+    """Normaliza string: quita acentos y pasa a lowercase."""
+    return _UD.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii").lower()
+
 SYNONYMS = {
     "refri": "refrigerator", "refrigerador": "refrigerator",
     "nevera": "refrigerator", "refrigerator": "refrigerator",
@@ -107,8 +113,7 @@ class SmPlannerNode(Node):
 
         # FIX: historial inicializado con el prompt del sistema
         self.msg_history = [
-            {"role": "user",      "content": SYSTEM_PROMPT},
-            {"role": "assistant", "content": "Entendido."},
+            {"role": "system", "content": SYSTEM_PROMPT},
         ]
 
         self.pub_goal    = self.create_publisher(PoseStamped, "/goal_pose", 1)
@@ -120,14 +125,22 @@ class SmPlannerNode(Node):
         self.create_subscription(String, "/sp_rec/recognized",       self._cb_recognized,   1)
         self.create_subscription(Bool,   "/navigation/goal_reached", self._cb_goal_reached, 1)
         self.create_subscription(String, "/yolo/detections",         self._cb_yolo,         1)
-        self.yolo_detections  = []
-        self.object_memory    = {}
-        self.current_location = "home"
+        self.yolo_detections    = []
+        self.object_memory      = {}
+        self.current_location   = "home"
+        self._last_tts_time     = 0.0
+        self._last_tts_duration = 0.0
+        self._last_person_greet = 0.0
+        self._fail_count        = 0
         log_path = os.path.expanduser("~/robot_activity_log.txt")
-        self._log_file = open(log_path, "a")
-        self._log_file.write(f"\n=== Sesion iniciada: {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
-        self._log_file.flush()
-        self.get_logger().info(f"Log de actividad en: {log_path}")
+        try:
+            self._log_file = open(log_path, "a")
+            self._log_file.write(f"\n=== Sesion iniciada: {time.strftime('%Y-%m-%d %H:%M:%S')} ===\n")
+            self._log_file.flush()
+            self.get_logger().info(f"Log de actividad en: {log_path}")
+        except Exception as e:
+            self._log_file = None
+            self.get_logger().warn(f"No se pudo abrir log: {e}")
         self.get_logger().info("Esperando instruccion en /sp_rec/recognized ...")
 
     # Frases de ruido que Whisper genera con silencio o audio del TTS
@@ -151,12 +164,12 @@ class SmPlannerNode(Node):
             self.get_logger().warn(f"Texto filtrado como ruido: '{text}'")
             return
         # Cancelacion global: funciona en CUALQUIER estado
-        wake_detected = any(ww in text[:25] for ww in self.WAKE_WORDS)
+        wake_detected = any(ww in text[:40] for ww in self.WAKE_WORDS)
         if wake_detected:
             command_text = text
             for ww in sorted(self.WAKE_WORDS, key=len, reverse=True):
-                if ww in command_text[:25]:
-                    command_text = command_text.replace(ww, "", 1).strip(" ,.:").strip()
+                if ww in command_text[:40]:
+                    command_text = re.sub(rf"^.*?{re.escape(ww)}\s*[,.]?\s*", "", command_text, count=1).strip()
                     break
             if any(cw in command_text for cw in self.CANCEL_WORDS):
                 self.get_logger().warn("[CANCEL] Cancelacion recibida.")
@@ -180,8 +193,8 @@ class SmPlannerNode(Node):
             return
         command = text
         for ww in sorted(self.WAKE_WORDS, key=len, reverse=True):
-            if ww in command[:25]:
-                command = command.replace(ww, "", 1).strip(" ,.:").strip()
+            if ww in command[:40]:
+                command = re.sub(rf"^.*?{re.escape(ww)}\s*[,.]?\s*", "", command, count=1).strip()
                 break
         if len(command) < 2:
             self._speak("Dime que quieres que haga.")
@@ -199,17 +212,17 @@ class SmPlannerNode(Node):
     def _cb_yolo(self, msg):
         try:
             self.yolo_detections = json.loads(msg.data)
-            if self.state == SM_WAIT_FOR_COMMAND:
-                for det in self.yolo_detections:
-                    if det.get("clase") == "person" and det.get("conf", 0) > 0.6:
-                        now = time.time()
-                        last_greet = getattr(self, "_last_person_greet", 0)
-                        if now - last_greet > 30.0:
-                            self._last_person_greet = now
-                            self._speak("Hola, soy tu robot de servicio. Puedo ayudarte si me dices: robot, seguido de tu instruccion.")
-                            break
-        except Exception:
+        except (json.JSONDecodeError, Exception):
             self.yolo_detections = []
+            return
+        if self.state == SM_WAIT_FOR_COMMAND:
+            for det in self.yolo_detections:
+                if det.get("clase") == "person" and det.get("conf", 0) > 0.6:
+                    now = time.time()
+                    if now - self._last_person_greet > 30.0:
+                        self._last_person_greet = now
+                        self._speak("Hola, soy tu robot de servicio. Puedo ayudarte si me dices: robot, seguido de tu instruccion.")
+                        break
 
     def _publish_goal(self, location_key):
         loc = LOCATIONS.get(location_key)
@@ -251,7 +264,8 @@ class SmPlannerNode(Node):
         for word, response in IMPOSSIBLE.items():
             if word in cmd:
                 return [("SPEAK", response), ("END", "")]
-        words = cmd.replace(",", " ").replace("y luego", " ").replace("despues", " ").replace("luego", " ").split()
+        cmd_norm = _norm(cmd)
+        words = cmd_norm.replace(",", " ").replace("y luego", " ").replace("despues", " ").replace("luego", " ").split()
         found_locations = []
         for w in words:
             key = SYNONYMS.get(w)
@@ -273,10 +287,10 @@ class SmPlannerNode(Node):
 
     def _ollama_interpret(self, cmd):
         try:
+            # Limitar historial antes de agregar nuevo mensaje
+            if len(self.msg_history) > 18:
+                self.msg_history = self.msg_history[:1] + self.msg_history[-17:]
             self.msg_history.append({"role": "user", "content": cmd})
-            # Limitar historial a system prompt + ultimos 18 mensajes
-            if len(self.msg_history) > 20:
-                self.msg_history = self.msg_history[:2] + self.msg_history[-18:]
             resp = requests.post(
                 OLLAMA_URL,
                 json={
@@ -288,11 +302,17 @@ class SmPlannerNode(Node):
                 timeout=45,
             )
             resp.raise_for_status()
-            reply = resp.json()["message"]["content"].strip()
+            data  = resp.json()
+            reply = data.get("message", {}).get("content", "").strip()
+            if not reply:
+                raise ValueError(f"Respuesta vacia de Ollama: {data}")
             self.msg_history.append({"role": "assistant", "content": reply})
             self.get_logger().info(f"Ollama respondio:\n{reply}")
             return self._parse_plan(reply)
         except Exception as e:
+            # Remover el mensaje del usuario si el POST fallo para no corromper historial
+            if self.msg_history and self.msg_history[-1]["role"] == "user":
+                self.msg_history.pop()
             self.get_logger().warn(f"Ollama fallo: {e}")
             return None
 
@@ -306,8 +326,14 @@ class SmPlannerNode(Node):
             if upper.startswith("NAVIGATE"):
                 parts = line.split(None, 1)
                 if len(parts) == 2:
-                    loc = SYNONYMS.get(parts[1].strip().lower(), parts[1].strip().lower())
-                    if loc in LOCATIONS:
+                    arg_words = _norm(parts[1]).split()
+                    loc = None
+                    for aw in arg_words:
+                        candidate = SYNONYMS.get(aw, aw)
+                        if candidate in LOCATIONS:
+                            loc = candidate
+                            break
+                    if loc:
                         plan.append(("NAVIGATE", loc))
             elif upper.startswith("SPEAK"):
                 parts = line.split(None, 1)
@@ -398,7 +424,8 @@ class SmPlannerNode(Node):
         msg.joint_names  = ["joint1","joint2","joint3","joint4","joint5","joint6"]
         p = JointTrajectoryPoint()
         p.positions = positions
-        p.time_from_start.sec = duration_sec
+        p.time_from_start.sec    = int(duration_sec)
+        p.time_from_start.nanosec = 0
         msg.points.append(p)
         self.pub_traj.publish(msg)
 
@@ -518,7 +545,7 @@ class SmPlannerNode(Node):
                     self.get_logger().info("Consultando Ollama...")
                     plan = self._ollama_interpret(self.command)
                 if plan is None:
-                    self._fail_count = getattr(self, "_fail_count", 0) + 1
+                    self._fail_count = self._fail_count + 1
                     if self._fail_count >= 3:
                         self._fail_count = 0
                         plan = [("SPEAK",
@@ -593,9 +620,14 @@ class SmPlannerNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     node = SmPlannerNode()
-    node.spin()
-    node.destroy_node()
-    rclpy.shutdown()
+    try:
+        node.spin()
+    finally:
+        if hasattr(node, "_log_file") and node._log_file:
+            node._log_file.write(f"[{time.strftime('%H:%M:%S')}] === Sesion terminada ===\n")
+            node._log_file.close()
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == "__main__":
