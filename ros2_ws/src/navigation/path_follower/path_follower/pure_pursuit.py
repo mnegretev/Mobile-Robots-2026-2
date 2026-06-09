@@ -11,7 +11,7 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Int32   # Añadir Int32
 from nav_msgs.msg import Path
 from nav_msgs.srv import GetPlan
 from navig_msgs.srv import ProcessPath
@@ -113,6 +113,22 @@ class PurePursuitNode(Node):
         self.get_logger().info("Received new goal pose: " + str(self.goal_pose))
         self.new_goal_pose = True
 
+    def action_callback(self, msg):
+        code = msg.data
+        if code in self.destinations:
+            self.get_logger().info(f"Orden recibida: acción {code} -> ir a {self.destinations[code]}")
+            self.last_action_code = code
+            self.return_to_origin = True   # suponemos que siempre queremos regresar
+            goal = PoseStamped()
+            goal.header.frame_id = "map"
+            goal.header.stamp = self.get_clock().now().to_msg()
+            goal.pose.position.x = self.destinations[code][0]
+            goal.pose.position.y = self.destinations[code][1]
+            goal.pose.orientation.w = 1.0
+            self.pub_goal_pose.publish(goal)
+        else:
+            self.get_logger().warn(f"Código {code} no reconocido, ignorando.")
+
     def __init__(self):
         super().__init__("pure_pursuit_node")
         self.get_logger().info("INITIALIZING PATH FOLLOWER BY PURE PURSUIT NODE ...")
@@ -134,6 +150,17 @@ class PurePursuitNode(Node):
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 1)
         self.pub_goal_reached = self.create_publisher(Bool, '/navigation/goal_reached', 1)
         self.sub_goal_pose = self.create_subscription(PoseStamped, '/goal_pose', self.callback_goal_pose, 1)
+        self.sub_action = self.create_subscription(Int32, '/llm/action_code', self.action_callback, 10)
+        self.pub_goal_pose = self.create_publisher(PoseStamped, '/goal_pose', 1)
+        #self.refri_coords = (10.0, 0.5)   # CAMBIAR POR LAS COORDENADAS REALES DEL REFRIGERADOR
+        # Coordenadas de cada destino (en metros, ajusta según tu mapa)
+        self.destinations = {
+            1: (10.0, 0.5),   # refrigerador
+            2: (8.0, -3.5),   # puerta
+            3: (-5.3, 3.8)   # foto del cuarto
+        }
+        self.last_action_code = 0   # para recordar qué acción se pidió        
+        self.return_to_origin = False
 
     def spin(self):
         robot_pose_tf_ready = False
@@ -213,13 +240,33 @@ class PurePursuitNode(Node):
                 state = SM_SAVE_DATA
 
             elif state == SM_SAVE_DATA:
+                # Guardar datos de navegación
                 s = ""
                 for d in self.nav_data:
-                    s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) +","+ str(d[5]) +","+ str(d[6]) + "\n"
-                f = open(self.data_file, "w")
-                f.write(s)
-                f.close()
-                state = SM_INIT
+                    s += f"{d[0]},{d[1]},{d[2]},{d[3]},{d[4]},{d[5]},{d[6]}\n"
+                with open(self.data_file, "w") as f:
+                    f.write(s)
+                self.nav_data.clear()   # Limpiar para el próximo viaje
+
+                if self.return_to_origin:
+                    self.get_logger().info("Esperando 10 segundos antes de regresar al origen...")
+                    # Esperar sin bloquear el spin de ROS
+                    start_time = self.get_clock().now()
+                    while (self.get_clock().now() - start_time).nanoseconds / 1e9 < 10.0:
+                        rclpy.spin_once(self, timeout_sec=0.1)
+                    self.get_logger().info("Regresando al origen (0,0)")
+                    # Enviar nueva meta al origen
+                    goal = PoseStamped()
+                    goal.header.frame_id = "map"
+                    goal.header.stamp = self.get_clock().now().to_msg()
+                    goal.pose.position.x = 0.0
+                    goal.pose.position.y = 0.0
+                    goal.pose.orientation.w = 1.0
+                    self.pub_goal_pose.publish(goal)
+                    self.return_to_origin = False   # Resetear bandera
+                    state = SM_PLAN_PATH          # Ir directamente a planificar el regreso
+                else:
+                    state = SM_INIT
 
             rclpy.spin_once(self)
             self.get_clock().sleep_for(Duration(seconds=0.005))

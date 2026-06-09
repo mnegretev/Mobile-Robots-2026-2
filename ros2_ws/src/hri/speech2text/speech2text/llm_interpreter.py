@@ -25,6 +25,8 @@ class LLMInterpreterNode(Node):
         [INST] <<SYS>>
         Eres un clasificador de comandos para un robot. Tu única tarea es asignar un código numérico a la intención del usuario. No des explicaciones.
         - Si la intención del comando está relacionada con abrir el refrigerador, revisar su interior o traer algo de él, responde ÚNICAMENTE con el número 0001.
+        - Si es relacionada con la PUERTA (abrir, cerrar, acercarse), responde ÚNICAMENTE con: 0002
+        - Si es relacionada con la FOTO del CUARTO (traer, buscar, mostrar), responde ÚNICAMENTE con: 0003
         - Para CUALQUIER OTRA intención, responde ÚNICAMENTE con el número 0000.
         <</SYS>>
         Texto del comando: "{command_text}"
