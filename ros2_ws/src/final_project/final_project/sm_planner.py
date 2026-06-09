@@ -46,6 +46,9 @@ IMPOSSIBLE = {
     "desaparece": "No puedo desaparecer.",
 }
 
+# Secuencia de waypoints para modo patrulla
+PATROL_WAYPOINTS = ["sofa", "tv", "table", "refrigerator", "kitchen", "bed", "home"]
+
 SYSTEM_PROMPT = (
     "Eres un planificador de acciones para un robot móvil de servicio en simulación. "
     "Respondes ÚNICAMENTE con listas de acciones ejecutables, una por línea, sin explicaciones ni texto adicional. "
@@ -117,27 +120,57 @@ class SmPlannerNode(Node):
         self.create_subscription(String, "/sp_rec/recognized",       self._cb_recognized,   1)
         self.create_subscription(Bool,   "/navigation/goal_reached", self._cb_goal_reached, 1)
         self.create_subscription(String, "/yolo/detections",         self._cb_yolo,         1)
-        self.yolo_detections = []
+        self.yolo_detections  = []
+        self.object_memory    = {}  # {clase_yolo: nombre_lugar_donde_se_vio}
+        self.current_location = "home"  # ubicacion actual del robot
         self.get_logger().info("Esperando instruccion en /sp_rec/recognized ...")
 
     # Frases de ruido que Whisper genera con silencio o audio del TTS
     NOISE_FILTERS = [
         "amara", "subtítulos", "subtitulos", "transcripción",
-        "transcripcion", "comunidad", "gracias por ver",
+        "transcripcion", "comunidad", "gracias por ver", "suscríbete",
+        "suscribete", "like", "comparte",
     ]
+
+    # Wake words que activan al robot
+    WAKE_WORDS = ["robot", "oye robot", "hey robot", "hola robot"]
 
     def _cb_recognized(self, msg):
         if self.state == SM_WAIT_FOR_COMMAND:
             text = msg.data.strip().lower()
+            if len(text) < 3:
+                return
             # Filtrar ruido de Whisper
             if any(noise in text for noise in self.NOISE_FILTERS):
                 self.get_logger().warn(f"Texto filtrado como ruido: '{text}'")
                 return
-            if len(text) < 3:
+            # Cooldown inteligente post-TTS
+            if hasattr(self, '_last_tts_time'):
+                elapsed = time.time() - self._last_tts_time
+                tts_duration = getattr(self, '_last_tts_duration', 3.0)
+                cooldown = max(tts_duration + 1.5, 3.0)
+                if elapsed < cooldown:
+                    self.get_logger().warn(
+                        f"Cooldown TTS activo ({elapsed:.1f}s/{cooldown:.1f}s), ignorando: '{text}'"
+                    )
+                    return
+            # Wake word: solo responder si la instruccion contiene "robot"
+            wake_detected = any(ww in text[:25] for ww in self.WAKE_WORDS)
+            if not wake_detected:
+                self.get_logger().info(f"Sin wake word, ignorando: '{text}'")
                 return
-            self.command     = text
+            # Quitar el wake word para quedarse con la instruccion
+            command = text
+            for ww in sorted(self.WAKE_WORDS, key=len, reverse=True):
+                if ww in command[:25]:
+                    command = command.replace(ww, "", 1).strip(" ,.:").strip()
+                    break
+            if len(command) < 2:
+                self._speak("Dime que quieres que haga.")
+                return
+            self.command     = command
             self.new_command = True
-            self.get_logger().info(f"Instruccion recibida: {self.command}")
+            self.get_logger().info(f"Wake word detectado. Instruccion: '{self.command}'")
 
     def _cb_goal_reached(self, msg):
         if msg.data:
@@ -167,8 +200,8 @@ class SmPlannerNode(Node):
         return True
 
     def _speak(self, text):
-        import time
         self._last_tts_time = time.time()
+        self._last_tts_duration = max(len(text) * 0.08, 2.0)
         self.pub_tts.publish(String(data=text))
         self.get_logger().info(f"TTS: {text}")
 
@@ -179,6 +212,12 @@ class SmPlannerNode(Node):
             self.get_clock().sleep_for(Duration(seconds=0.05))
 
     def _rule_based_interpret(self, cmd):
+        # Consulta de memoria: "donde esta X" o "has visto X"
+        if any(p in cmd for p in ["donde esta", "donde está", "has visto", "viste"]):
+            for obj, lugar in self.object_memory.items():
+                if obj in cmd:
+                    return [("SPEAK", f"La ultima vez vi {obj} en {lugar}."), ("END", "")]
+            return [("SPEAK", "No recuerdo haber visto ese objeto."), ("END", "")]
         for word, response in IMPOSSIBLE.items():
             if word in cmd:
                 return [("SPEAK", response), ("END", "")]
@@ -195,6 +234,8 @@ class SmPlannerNode(Node):
             return plan
         if any(w in cmd for w in ["alto", "detente", "para", "stop"]):
             return [("STOP", ""), ("END", "")]
+        if any(w in cmd for w in ["patrulla", "patrol", "recorre", "inspecciona"]):
+            return [("PATROL", ""), ("END", "")]
         return None
 
     def _ollama_interpret(self, cmd):
@@ -241,6 +282,8 @@ class SmPlannerNode(Node):
             elif upper.startswith("MANIPULATE"):
                 parts = line.split(None, 1)
                 plan.append(("MANIPULATE", parts[1].strip() if len(parts) == 2 else "objeto"))
+            elif upper.startswith("PATROL"):
+                plan.append(("PATROL", ""))
             elif upper == "STOP":
                 plan.append(("STOP", ""))
             elif upper == "END":
@@ -303,7 +346,10 @@ class SmPlannerNode(Node):
 
         if encontrado:
             self.get_logger().info(f"[DETECT] Objeto '{target}' encontrado.")
-            self._speak(f"Encontre {target}.")
+            self.object_memory[yolo_class] = self.current_location
+            self.object_memory[target.lower()] = self.current_location
+            self.get_logger().info(f"[MEMORIA] {target} guardado en: {self.current_location}")
+            self._speak(f"Encontre {target} en {self.current_location}.")
         else:
             self.get_logger().warn(f"[DETECT] Objeto '{target}' no encontrado.")
             self._speak(f"No encontre {target}.")
@@ -356,6 +402,28 @@ class SmPlannerNode(Node):
             self.get_logger().warn(f"[MANIPULATE] Error: {e}")
             self._speak("No pude completar la manipulacion.")
 
+    def _patrol(self):
+        """Recorre todos los waypoints conocidos buscando anomalias."""
+        self.get_logger().info("[PATROL] Iniciando patrulla del departamento.")
+        self._speak("Iniciando patrulla del departamento.")
+        for waypoint in PATROL_WAYPOINTS:
+            if not rclpy.ok():
+                break
+            self.get_logger().info(f"[PATROL] Navegando a: {waypoint}")
+            if self._publish_goal(waypoint):
+                self.current_location = waypoint
+                self.goal_reached     = False
+                self.nav_timeout      = 0
+                # Esperar llegada con timeout
+                while not self.goal_reached and self.nav_timeout < NAV_TIMEOUT_CYCLES and rclpy.ok():
+                    rclpy.spin_once(self, timeout_sec=0)
+                    self.get_clock().sleep_for(Duration(seconds=0.05))
+                    self.nav_timeout += 1
+                self.goal_reached = False
+                self.nav_timeout  = 0
+        self._speak("Patrulla completada. Todo en orden.")
+        self.get_logger().info("[PATROL] Patrulla completada.")
+
     def spin(self):
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0)
@@ -389,6 +457,7 @@ class SmPlannerNode(Node):
                     if self._publish_goal(arg):
                         self.goal_reached = False
                         self.nav_timeout  = 0
+                        self.current_location = arg
                         self.state = SM_WAIT_GOAL_REACHED
                     else:
                         self._speak(f"No conozco el lugar {arg}.")
@@ -399,6 +468,8 @@ class SmPlannerNode(Node):
                     self._detect_object(arg)
                 elif action == "MANIPULATE":
                     self._manipulate(arg)
+                elif action == "PATROL":
+                    self._patrol()
                 elif action == "STOP":
                     self._speak("Deteniendome.")
                     self._sleep(1.0)
