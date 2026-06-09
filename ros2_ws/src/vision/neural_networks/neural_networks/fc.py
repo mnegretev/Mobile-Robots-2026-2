@@ -33,43 +33,25 @@ class FCNeuralNetwork(object):
         
     def feedforward(self, x):
         y = []
-        #
-        # TODO:
-        # Calculate the output of each layer given the input x
-        # Return an array y containg the output of each layer
-        # You can do the following steps:
-        # 
-        # append x to y
-        # FOR i = [0,..,L):
-        #   u = dot product (W[i], x) + B[i]
-        #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
-        #   append x to y
-        #
-        
+        y.append(x)
+        for i in range(len(self.weights)):
+            u = numpy.dot(self.weights[i], x) + self.biases[i]
+            x = 1.0 / (1.0 + numpy.exp(-u))
+            y.append(x)
         return y
 
     def backpropagate(self, x, t):
         y = self.feedforward(x)
         nabla_b = [numpy.zeros(b.shape) for b in self.biases]
         nabla_w = [numpy.zeros(w.shape) for w in self.weights]
-        # TODO:
-        # Return a tuple [nabla_w, nabla_b] containing the gradient of cost function J with respect to
-        # each weight and bias of all the network. The gradient is calculated assuming only one training
-        # example: the input 'x' and the corresponding target 't'.
-        # nabla_w and nabla_b should have the same dimensions as the corresponding
-        # self.weights and self.biases
-        # You can calculate the gradient following these steps:
-        #
-        # Calculate delta for the output layer L: delta=(y[-1]-t)*y[-1]*(1-y[-1])
-        # nabla_b of output layer = delta      
-        # nabla_w of output layer = delta*y[-2].T where y[-2].T is the transpose of the ouput vector of layer L-1
-        # FOR all layers i=[2,L): 
-        #     delta = (W[-i+1].T * delta)*y[-i]*(1 - y[-i])
-        #     where 'W[-i+1].T' is the transpose of the matrix of weights of layer -i+1 and 'y[-i]' is the output of layer -i
-        #     nabla_b[-i] = delta
-        #     nabla_w[-i] = delta*y[-i-1].T  
-        #        
-        
+        delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+        nabla_b[-1] = delta
+        nabla_w[-1] = numpy.dot(delta, y[-2].T)
+        L = len(self.weights)
+        for i in range(2, L + 1):
+            delta = numpy.dot(self.weights[-i + 1].T, delta) * y[-i] * (1 - y[-i])
+            nabla_b[-i] = delta
+            nabla_w[-i] = numpy.dot(delta, y[-i - 1].T)
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
