@@ -274,6 +274,9 @@ class SmPlannerNode(Node):
     def _ollama_interpret(self, cmd):
         try:
             self.msg_history.append({"role": "user", "content": cmd})
+            # Limitar historial a system prompt + ultimos 18 mensajes
+            if len(self.msg_history) > 20:
+                self.msg_history = self.msg_history[:2] + self.msg_history[-18:]
             resp = requests.post(
                 OLLAMA_URL,
                 json={
@@ -472,11 +475,13 @@ class SmPlannerNode(Node):
     def _cancel_all(self):
         """Cancela cualquier tarea en progreso y regresa a esperar."""
         self.pub_cmd_vel.publish(Twist())  # detener robot
-        self.plan        = []
-        self.plan_index  = 0
+        self.plan         = []
+        self.plan_index   = 0
         self.goal_reached = False
         self.nav_timeout  = 0
-        self.state       = SM_WAIT_FOR_COMMAND
+        self.new_command  = False  # FIX: limpiar instruccion pendiente
+        self.command      = ""
+        self.state        = SM_WAIT_FOR_COMMAND
         self._speak("Tarea cancelada. Listo para nuevas instrucciones.")
         self.get_logger().info("[CANCEL] Sistema reseteado.")
 
@@ -553,6 +558,7 @@ class SmPlannerNode(Node):
                 elif action == "PATROL":
                     self._patrol()
                 elif action == "STOP":
+                    self.pub_cmd_vel.publish(Twist())  # FIX: publicar velocidad cero
                     self._speak("Deteniendome.")
                     self._sleep(1.0)
                 elif action == "END":
