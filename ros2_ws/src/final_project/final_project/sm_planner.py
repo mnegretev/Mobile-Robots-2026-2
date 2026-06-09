@@ -180,6 +180,15 @@ class SmPlannerNode(Node):
     def _cb_yolo(self, msg):
         try:
             self.yolo_detections = json.loads(msg.data)
+            if self.state == SM_WAIT_FOR_COMMAND:
+                for det in self.yolo_detections:
+                    if det.get("clase") == "person" and det.get("conf", 0) > 0.6:
+                        now = time.time()
+                        last_greet = getattr(self, "_last_person_greet", 0)
+                        if now - last_greet > 30.0:
+                            self._last_person_greet = now
+                            self._speak("Hola, soy tu robot de servicio. Puedo ayudarte si me dices: robot, seguido de tu instruccion.")
+                            break
         except Exception:
             self.yolo_detections = []
 
@@ -236,6 +245,9 @@ class SmPlannerNode(Node):
             return [("STOP", ""), ("END", "")]
         if any(w in cmd for w in ["patrulla", "patrol", "recorre", "inspecciona"]):
             return [("PATROL", ""), ("END", "")]
+        if any(w in cmd for w in ["como estas", "cómo estás", "estado", "que puedes", "qué puedes",
+                                   "capacidades", "que sabes", "qué sabes", "presentate", "preséntate"]):
+            return [("SPEAK", self._build_status_report()), ("END", "")]
         return None
 
     def _ollama_interpret(self, cmd):
@@ -424,6 +436,22 @@ class SmPlannerNode(Node):
         self._speak("Patrulla completada. Todo en orden.")
         self.get_logger().info("[PATROL] Patrulla completada.")
 
+    def _build_status_report(self) -> str:
+        mem = self.object_memory
+        loc = self.current_location.replace("_", " ")
+        if mem:
+            objetos = ", ".join(f"{obj} en {lugar}" for obj, lugar in list(mem.items())[:3])
+            mem_str = f"Recuerdo haber visto: {objetos}."
+        else:
+            mem_str = "No recuerdo haber detectado objetos aun."
+        return (
+            f"Estoy en {loc}. "
+            f"{mem_str} "
+            f"Puedo navegar a lugares, detectar objetos con la camara, "
+            f"hablar contigo e intentar manipular objetos con el brazo. "
+            f"No puedo volar ni teleportarme."
+        )
+
     def spin(self):
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0)
@@ -441,7 +469,17 @@ class SmPlannerNode(Node):
                     self.get_logger().info("Consultando Ollama...")
                     plan = self._ollama_interpret(self.command)
                 if plan is None:
-                    plan = [("SPEAK", "No entendi la instruccion."), ("END", "")]
+                    self._fail_count = getattr(self, "_fail_count", 0) + 1
+                    if self._fail_count >= 3:
+                        self._fail_count = 0
+                        plan = [("SPEAK",
+                            "No entiendo tus instrucciones. Puedes decirme: "
+                            "robot ve al refri, robot busca una silla, o robot dime que puedes hacer."),
+                            ("END", "")]
+                    else:
+                        plan = [("SPEAK", "No entendi la instruccion."), ("END", "")]
+                else:
+                    self._fail_count = 0
                 self.plan       = plan
                 self.plan_index = 0
                 self.get_logger().info(f"Plan: {self.plan}")
