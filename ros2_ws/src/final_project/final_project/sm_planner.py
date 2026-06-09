@@ -2,8 +2,10 @@ import rclpy
 from rclpy.node import Node
 from rclpy.duration import Duration
 from std_msgs.msg import String, Bool
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Twist
 import requests
+import json
+import time
 
 SM_WAIT_FOR_COMMAND  = 0
 SM_INTERPRET_COMMAND = 10
@@ -104,10 +106,13 @@ class SmPlannerNode(Node):
             {"role": "assistant", "content": "Entendido."},
         ]
 
-        self.pub_goal = self.create_publisher(PoseStamped, "/goal_pose", 1)
-        self.pub_tts  = self.create_publisher(String,      "/tts_query", 1)
-        self.create_subscription(String, "/sp_rec/recognized", self._cb_recognized, 1)
+        self.pub_goal    = self.create_publisher(PoseStamped, "/goal_pose", 1)
+        self.pub_tts     = self.create_publisher(String,      "/tts_query", 1)
+        self.pub_cmd_vel = self.create_publisher(Twist,       "/cmd_vel",   1)
+        self.create_subscription(String, "/sp_rec/recognized",       self._cb_recognized,   1)
         self.create_subscription(Bool,   "/navigation/goal_reached", self._cb_goal_reached, 1)
+        self.create_subscription(String, "/yolo/detections",         self._cb_yolo,         1)
+        self.yolo_detections = []
         self.get_logger().info("Esperando instruccion en /sp_rec/recognized ...")
 
     # Frases de ruido que Whisper genera con silencio o audio del TTS
@@ -133,6 +138,12 @@ class SmPlannerNode(Node):
         if msg.data:
             self.goal_reached = True
             self.get_logger().info("Meta alcanzada.")
+
+    def _cb_yolo(self, msg):
+        try:
+            self.yolo_detections = json.loads(msg.data)
+        except Exception:
+            self.yolo_detections = []
 
     def _publish_goal(self, location_key):
         loc = LOCATIONS.get(location_key)
@@ -229,6 +240,67 @@ class SmPlannerNode(Node):
                 break
         return plan if plan else None
 
+    def _detect_object(self, target):
+        """Gira el robot buscando el objeto con YOLO. Maximo 360 grados."""
+        self._speak(f"Buscando {target}.")
+        self.get_logger().info(f"[DETECT] Buscando objeto: {target}")
+
+        # Mapeo de nombres en espanol a clases YOLO
+        YOLO_CLASSES = {
+            "silla":        "chair",
+            "chair":        "chair",
+            "sofa":         "couch",
+            "sillon":       "couch",
+            "cama":         "bed",
+            "bed":          "bed",
+            "tele":         "tv",
+            "television":   "tv",
+            "tv":           "tv",
+            "refrigerador": "refrigerator",
+            "refri":        "refrigerator",
+            "refrigerator": "refrigerator",
+            "persona":      "person",
+            "person":       "person",
+            "bebida":       "bottle",
+            "bottle":       "bottle",
+            "vaso":         "cup",
+            "cup":          "cup",
+            "pelota":       "sports ball",
+        }
+        yolo_class = YOLO_CLASSES.get(target.lower(), target.lower())
+
+        # Girar hasta 360 grados buscando el objeto
+        VEL_GIRO  = 0.3   # rad/s
+        T_MAX     = (2 * 3.14159) / VEL_GIRO  # ~21 segundos para 360 grados
+        t_inicio  = time.time()
+        encontrado = False
+
+        twist = Twist()
+        twist.angular.z = VEL_GIRO
+
+        while time.time() - t_inicio < T_MAX and rclpy.ok():
+            # Revisar detecciones actuales
+            for det in self.yolo_detections:
+                if det.get("clase") == yolo_class and det.get("conf", 0) > 0.4:
+                    encontrado = True
+                    break
+            if encontrado:
+                break
+            self.pub_cmd_vel.publish(twist)
+            rclpy.spin_once(self, timeout_sec=0)
+            self.get_clock().sleep_for(Duration(seconds=0.05))
+
+        # Detener giro
+        self.pub_cmd_vel.publish(Twist())
+
+        if encontrado:
+            self.get_logger().info(f"[DETECT] Objeto '{target}' encontrado.")
+            self._speak(f"Encontre {target}.")
+        else:
+            self.get_logger().warn(f"[DETECT] Objeto '{target}' no encontrado.")
+            self._speak(f"No encontre {target}.")
+        self._sleep(2.0)
+
     def spin(self):
         while rclpy.ok():
             rclpy.spin_once(self, timeout_sec=0)
@@ -269,8 +341,7 @@ class SmPlannerNode(Node):
                     self._speak(arg)
                     self._sleep(3.0)
                 elif action == "DETECT":
-                    self._speak(f"Buscando {arg}.")
-                    self._sleep(3.0)
+                    self._detect_object(arg)
                 elif action == "STOP":
                     self._speak("Deteniendome.")
                     self._sleep(1.0)
