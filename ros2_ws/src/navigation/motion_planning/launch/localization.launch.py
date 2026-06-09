@@ -23,6 +23,7 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             arguments=['-d', rviz_config_file,'--ros-args', '-p', 'use_sim_time:=True',],
+
         ),   
         Node(
             package='tf2_ros',
@@ -30,6 +31,7 @@ def generate_launch_description():
             name='map_to_odom_tf',
             arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
         ),     
+
         Node(
             package='nav2_map_server',
             executable='map_server',
@@ -37,6 +39,7 @@ def generate_launch_description():
             output='screen',
             parameters=[{'yaml_filename':map_config_file}, {'use_sim_time':True}]
         ),
+
         # TimerAction(
         #     period=5.0,
         #     actions=[
@@ -58,6 +61,7 @@ def generate_launch_description():
                 {'use_sim_time': True},
                 {'autostart': True},
                 {'node_names': ['map_server']}
+
             ]
         )
     ])

@@ -11,6 +11,7 @@ import sys
 import random
 import numpy
 import os
+
 import time
 
 NAME = "Javier Enrique Diaz Rivera"
@@ -42,11 +43,13 @@ class FCNeuralNetwork(object):
         #   x = 1.0 / (1.0 + exp(-u)) The output of the i-th layer is the input of the next one
         #   append x to y
         #
+
         y.append (x)
         for i in range(len(self.weights)):
             u = numpy.dot(self.weights[i],x) + self.biases[i]
             x = 1.0 / (1.0 + numpy.exp(-u))
             y.append(x)
+
         return y
 
     def backpropagate(self, x, t):
@@ -70,6 +73,7 @@ class FCNeuralNetwork(object):
         #     nabla_b[-i] = delta
         #     nabla_w[-i] = delta*y[-i-1].T  
         #
+
         delta = (y[-1]-t) * y[-1] * (1-y[-1])
         nabla_w[-1] = numpy.dot(delta, y[-2].T)
         nabla_b[-1] = delta
@@ -78,6 +82,7 @@ class FCNeuralNetwork(object):
             nabla_w[-i] = delta * y[-i-1].T
             nabla_b[-i] = delta
             
+
         return nabla_w, nabla_b
 
     def update_with_batch(self, batch, eta):
@@ -133,7 +138,9 @@ def load_dataset(folder):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
         label  = numpy.asarray(labels[i]).reshape([10,1])
+
         #label  = numpy.asarray(labels[i]).reshape([4,1])
+
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -143,6 +150,7 @@ def load_dataset(folder):
 def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
+
 
     epochs_list = [3, 10, 50, 100]
     batch_size_list = [5, 10, 30, 100]
@@ -209,7 +217,6 @@ def main(args=None):
         #print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
         #cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
         #cmd = cv2.waitKey(0)
-    
 
 
 if __name__ == '__main__':

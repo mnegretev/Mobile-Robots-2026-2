@@ -23,7 +23,9 @@ from ament_index_python.packages import get_package_share_directory
 import math
 import numpy
 
+
 NAME = "Diaz Rivera Javier Enrique"
+
 
 SM_INIT = 0
 SM_WAIT_FOR_NEW_GOAL = 10
@@ -88,15 +90,20 @@ class StanleyNode(Node):
         while numpy.linalg.norm(path[-1] - Pr)>tol and rclpy.ok():
             xi, yi, theta_i = self.get_nearest_point_and_angle(path, Pr[0], Pr[1])
             v,w = self.calculate_control(Pr[0],Pr[1], robot_a,xi,yi,theta_i,Kd,Ka,v_max,w_max)
+
             self.publish_and_save_data(Pr[0], Pr[1], robot_a,xi,yi, v,w)
+
+
             Pr, robot_a = self.get_robot_pose()
         #
         # END OF WHILE
         #
         return
 
+
     def publish_and_save_data(self, robot_x, robot_y, robot_a, goal_x, goal_y, v,w):
         self.nav_data.append([robot_x, robot_y, robot_a, goal_x, goal_y, v, w])
+
         msg = Twist()
         msg.linear.x = v
         msg.angular.z = w
@@ -141,7 +148,9 @@ class StanleyNode(Node):
         self.declare_parameter('w_max', 1.0)
         self.declare_parameter('Kd', 1.0)
         self.declare_parameter('Ka', 1.0)
-        self.declare_parameter('tol', 0.3)
+
+        self.declare_parameter('tol', 0.1)
+
         self.clt_plan_path = self.create_client(GetPlan, '/path_planning/plan_path')
         self.clt_smooth_path = self.create_client(ProcessPath, '/path_planning/smooth_path')
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 1)
@@ -228,7 +237,10 @@ class StanleyNode(Node):
             elif state == SM_SAVE_DATA:
                 s = ""
                 for d in self.nav_data:
+
                     s += str(d[0]) +","+ str(d[1]) +","+ str(d[2]) +","+ str(d[3]) +","+ str(d[4]) +","+ str(d[5]) +","+ str(d[6]) + "\n"
+
+
                 f = open(self.data_file, "w")
                 f.write(s)
                 f.close()

@@ -13,7 +13,9 @@ from manip_msgs.srv import *
 import numpy
 import math
 
+
 NAME = "Javier Enrique Díaz Rivera"
+
 
 H0 = [[1.0, 0.0, 0.0, 0.000], # link1 to link_base, joint rotates on Z
       [0.0, 1.0, 0.0, 0.000],
@@ -87,18 +89,33 @@ class IKNewtonRaphsonNode(Node):
         #     Get RPY from the resulting H
         #     Get xyz from the resulting H
         #
-        H = numpy.eye(4)
-        for i,q in enumerate(Q):
-            R = numpy.array([[numpy.cos(q), -numpy.sin(q), 0, 0],
-                             [numpy.sin(q), numpy.cos(q), 0, 0],
-                             [0, 0, 1, 0],
-                             [0, 0, 0, 1]])
+# MIO:
+#         H = numpy.eye(4)
+#         for i,q in enumerate(Q):
+#             R = numpy.array([[numpy.cos(q), -numpy.sin(q), 0, 0],
+#                              [numpy.sin(q), numpy.cos(q), 0, 0],
+#                              [0, 0, 1, 0],
+#                              [0, 0, 0, 1]])
+#             H = H @ Hs[i] @ R
+#         H = H @ Hs[6]
+#         x = H[0, 3]
+#         y = H[1, 3]
+#         z = H[2, 3]
+#         R, P, Y = self.matrix_to_euler_xyz(H[:3, :3])
+
+        H =  numpy.identity(4)
+        #print(Q)
+        for i in range(6):
+            R = numpy.asarray([[numpy.cos(Q[i]), -numpy.sin(Q[i]), 0, 0],
+                               [numpy.sin(Q[i]),  numpy.cos(Q[i]), 0, 0],
+                               [0,0,1,0],
+                               [0,0,0,1]])
+            #print(R)
             H = H @ Hs[i] @ R
         H = H @ Hs[6]
-        x = H[0, 3]
-        y = H[1, 3]
-        z = H[2, 3]
-        R, P, Y = self.matrix_to_euler_xyz(H[:3, :3])
+        R,P,Y = self.matrix_to_euler_xyz(H)
+        x,y,z = H[0,3], H[1,3], H[2,3]
+
         return numpy.asarray([x, y, z, R, P, Y])
 
     def jacobian(self, Q):
@@ -126,9 +143,11 @@ class IKNewtonRaphsonNode(Node):
         qn = numpy.asarray([Q,]*len(Q)) + numpy.identity(len(Q))*delta_q
         qp = numpy.asarray([Q,]*len(Q)) - numpy.identity(len(Q))*delta_q
 
+
         print(qn)
         for i in range(6):
             J[:,i] = (self.forward_kinematics(qn[i])- self.forward_kinematics(qp[i])) / (2.0*delta_q)
+
 
         return J
         
@@ -157,19 +176,19 @@ class IKNewtonRaphsonNode(Node):
         #    Set success if maximum iterations were not exceeded
         #    Return success and calculated Q
         #
-        tol = 0.001
+
+        tol = 0.000001
         X = self.forward_kinematics(Q)
-        error = X - Xd
-        error[3:6] = (error[3:6] + math.pi) % (2*math.pi) - math.pi
-        while numpy.linalg.norm(error) > tol and iterations < max_iter:
+        e = X - Xd
+        e[3:6] = (e[3:6] + math.pi)%(2*math.pi) - math.pi
+        while numpy.linalg.norm(e)  > tol and iterations < max_iter:
             J = self.jacobian(Q)
-            Q = Q - numpy.linalg.pinv(J).dot(error)
-            Q = (Q + math.pi) % (2*math.pi) - math.pi
+            Q = (Q - numpy.linalg.pinv(J) @ e + math.pi)%(2*math.pi) - math.pi
             X = self.forward_kinematics(Q)
-            error = X - Xd
-            error[3:6] = (error[3:6] + math.pi) % (2*math.pi) - math.pi
+            e = X - Xd
+            e[3:6] = (e[3:6] + math.pi)%(2*math.pi) - math.pi
             iterations += 1
-        
+
         success = iterations < max_iter
         if success:
             self.get_logger().info("IK solved after " + str(iterations) + " steps. Q=" + str(Q))
@@ -194,6 +213,9 @@ class IKNewtonRaphsonNode(Node):
 def main(args=None):
     rclpy.init(args=args)
     ik_node = IKNewtonRaphsonNode()
+
+    print(ik_node.forward_kinematics([0, -0.5, -1.4, 0,0.3,0]))
+
     rclpy.spin(ik_node)
     ik_node.destroy_node()
     rclpy.shutdown()
