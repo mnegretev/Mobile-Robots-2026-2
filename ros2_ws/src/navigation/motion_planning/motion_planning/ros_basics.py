@@ -13,7 +13,7 @@ from rclpy.node import Node
 from geometry_msgs.msg import Twist, PointStamped
 from sensor_msgs.msg import LaserScan
 
-FULL_NAME = "FULL NAME"
+FULL_NAME = "Zambrano Miranda Isaac Jaciel"
 
 class RosBasicsNode(Node):
     def __init__(self):

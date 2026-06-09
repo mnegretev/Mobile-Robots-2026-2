@@ -14,7 +14,7 @@ import rclpy
 from ament_index_python.packages import get_package_share_directory
 import os
 
-NAME = "FULL NAME"
+NAME = "Zambrano Miranda Isaac Jaciel"
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
