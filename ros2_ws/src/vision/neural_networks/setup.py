@@ -26,6 +26,7 @@ setup(
             'fc = neural_networks.fc:main',
             'fc_solved = neural_networks.fc_solved:main',
             'yolo = neural_networks.yolo:main',
+            'yolo_controller = neural_networks.yolo_controller:main',   
         ],
     },
 )

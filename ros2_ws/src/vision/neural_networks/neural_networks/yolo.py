@@ -1,4 +1,5 @@
 import rclpy
+from geometry_msgs.msg import Twist
 from rclpy.node import Node
 from ament_index_python.packages import get_package_share_directory
 import cv2
@@ -8,7 +9,7 @@ import numpy
 import os
 from ultralytics import YOLO
 
-NAME = "FULL NAME"
+NAME = "Gonzalez Gomez Alejandro"
 
 class YoloNode(Node):
     def callback_img(self, msg):
@@ -34,9 +35,11 @@ class YoloNode(Node):
         #model_path  = self.get_parameter('model_path').get_parameter_value().string_value
         print(f'Initializing yolo model from path :{model_path}')
         self.model = YOLO(model_path)
-        self.model.to('cuda')
+        self.model.to('cpu')
+        # Publicador para comandos de velocidad
+        self.pub_cmd = self.create_publisher(Twist, '/cmd_vel', 10)
         print("Model initialized succesfully")
-        self.sub_img = self.create_subscription(Image, '/camera/color/image_raw', self.callback_img, 1)
+        self.sub_img = self.create_subscription(Image, '/camera/image_raw', self.callback_img, 1)
 
 def main(args=None):
     rclpy.init(args=args)
