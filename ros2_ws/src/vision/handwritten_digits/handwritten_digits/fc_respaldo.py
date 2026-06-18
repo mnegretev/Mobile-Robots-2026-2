@@ -11,10 +11,15 @@ import sys
 import random
 import numpy
 import os
+<<<<<<< HEAD
 import csv
 import time
 
 NAME = "Rodriguez Torres Angel Adrian"
+=======
+
+NAME = "FULL NAME"
+>>>>>>> 54470a3955eab8b27fdaaebc3f6d84d17d48c820
 
 class FCNeuralNetwork(object):
     def __init__(self, layers, weights=None, biases=None):
@@ -37,11 +42,14 @@ class FCNeuralNetwork(object):
         # Remember that input x is considered as the layer zero
         # You can do the following steps:
         # 
+<<<<<<< HEAD
         y.append(x)
         for i in range(len(self.weights)):
             u = numpy.dot(self.weights[i], x) + self.biases[i]
             x = 1.0 / (1.0 + numpy.exp(-u))
             y.append(x)
+=======
+>>>>>>> 54470a3955eab8b27fdaaebc3f6d84d17d48c820
         # append x to y
         # FOR i = [0,..,L-1):
         #   u = dot product (W[i], x) + B[i]
@@ -53,7 +61,10 @@ class FCNeuralNetwork(object):
 
     def backpropagate(self, x, t):
         y = self.feedforward(x)
+<<<<<<< HEAD
         delta = (y[-1] - t) * y[-1] * (1 - y[-1])
+=======
+>>>>>>> 54470a3955eab8b27fdaaebc3f6d84d17d48c820
         nabla_b = [numpy.zeros(b.shape) for b in self.biases]
         nabla_w = [numpy.zeros(w.shape) for w in self.weights]
         # TODO:
@@ -64,6 +75,7 @@ class FCNeuralNetwork(object):
         # self.weights and self.biases
         # You can calculate the gradient following these steps:
         #
+<<<<<<< HEAD
         nabla_b[-1] = delta
         nabla_w[-1] = numpy.dot(delta, y[-2].T)
 
@@ -72,6 +84,8 @@ class FCNeuralNetwork(object):
             nabla_b[-i] = delta
             nabla_w[-i] = numpy.dot(delta, y[-i-1].T)
 
+=======
+>>>>>>> 54470a3955eab8b27fdaaebc3f6d84d17d48c820
         # Calculate delta for the output layer L: delta=(y[-1]-t)*y[-1]*(1-y[-1])
         # nabla_b of output layer = delta      
         # nabla_w of output layer = delta*y[-2].T where y[-2].T is the transpose of the ouput vector of layer L-1
@@ -124,6 +138,7 @@ class FCNeuralNetwork(object):
     #
 
 
+<<<<<<< HEAD
 def load_dataset(folder, is_binary=False):
     print("Loading data set from " + folder)
     training_x, training_t, testing_x, testing_t = [],[],[],[]
@@ -142,6 +157,22 @@ def load_dataset(folder, is_binary=False):
         f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
         images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
         label  = numpy.asarray(labels[i]).reshape([num_labels,1])
+=======
+def load_dataset(folder):
+    print("Loading data set from " + folder)
+    training_x, training_t, testing_x, testing_t = [],[],[],[]
+    labels = [[1,0,0,0,0,0,0,0,0,0], [0,1,0,0,0,0,0,0,0,0], [0,0,1,0,0,0,0,0,0,0],
+              [0,0,0,1,0,0,0,0,0,0], [0,0,0,0,1,0,0,0,0,0], [0,0,0,0,0,1,0,0,0,0],
+              [0,0,0,0,0,0,1,0,0,0], [0,0,0,0,0,0,0,1,0,0], [0,0,0,0,0,0,0,0,1,0],
+              [0,0,0,0,0,0,0,0,0,1]]
+    # labels = [[0,0,0,0], [0,0,0,1], [0,0,1,0], [0,0,1,1], [0,1,0,0],
+    #           [0,1,0,1], [0,1,1,0], [0,1,1,1], [1,0,0,0], [1,0,0,1]]
+    for i in range(10):
+        f_data = [c/255.0 for c in open(os.path.join(folder, "data" + str(i)), "rb").read(784000)]
+        images = [numpy.asarray(f_data[784*j:784*(j+1)]).reshape([784,1]) for j in range(1000)]
+        label  = numpy.asarray(labels[i]).reshape([10,1])
+        # label  = numpy.asarray(labels[i]).reshape([4,1])
+>>>>>>> 54470a3955eab8b27fdaaebc3f6d84d17d48c820
         training_x += images[0:len(images)//2]
         training_t += [label for j in range(len(images)//2)]
         testing_x  += images[len(images)//2:len(images)]
@@ -152,6 +183,7 @@ def main(args=None):
     print("TRAINING A NEURAL NETWORK - " + NAME)
     dataset_folder = os.path.join("../dataset")
     
+<<<<<<< HEAD
     tasas = [0.5, 1.0, 3.0, 10.0]
     epocas_lista = [3, 10, 50, 100]
     lotes = [5, 10, 30, 100]
@@ -188,3 +220,30 @@ def main(args=None):
                         
 if __name__ == '__main__':
     main()
+=======
+    epochs        = 3
+    batch_size    = 50
+    learning_rate = 1.0
+    training_x, training_t, testing_x, testing_t = load_dataset(dataset_folder)
+    nn = FCNeuralNetwork([784,30,10])
+    # nn = FCNeuralNetwork([784,30,4])
+    nn.train_by_SGD(training_x, training_t, epochs, batch_size, learning_rate)
+
+    print("\nPress key to test network or ESC to exit...")
+    numpy.set_printoptions(formatter={'float_kind':"{:.3f}".format})
+    cmd = cv2.waitKey(0)
+    while cmd != 27:
+        rand_i = numpy.random.randint(0, len(testing_x))
+        img,label = testing_x[rand_i], testing_t[rand_i]
+        y = nn.feedforward(img)[-1]
+        print("\nNN output: " + str(y.T))
+        print("Expected output  : "   + str(label.T))
+        print("Correctly classified: "   + str(numpy.linalg.norm(label - y) < 0.5))
+        cv2.imshow("Digit", numpy.reshape(numpy.asarray(img, dtype="float32"), (28,28,1)))
+        cmd = cv2.waitKey(0)
+    
+
+
+if __name__ == '__main__':
+    main()
+>>>>>>> 54470a3955eab8b27fdaaebc3f6d84d17d48c820

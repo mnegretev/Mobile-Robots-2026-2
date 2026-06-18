@@ -11,10 +11,11 @@ setup(
     data_files=[
         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
-        ('share/'+ package_name + '/launch/', glob('launch/*')),
-        ('share/'+ package_name + '/rviz/', glob('rviz/*')),
-        ('share/'+ package_name + '/config/', glob('config/*')),
-        ('share/'+ package_name + '/maps/', glob('maps/*')),
+        # Corregido con comodín universal para que agarre CUALQUIER archivo launch:
+        ('share/' + package_name + '/launch', glob('launch/*')),
+        ('share/' + package_name + '/rviz', glob('rviz/*')),
+        ('share/' + package_name + '/config', glob('config/*')),
+        ('share/' + package_name + '/maps', glob('maps/*')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -31,7 +32,8 @@ setup(
         'console_scripts': [
             'motion_planner = motion_planning.motion_planner:main',
             'ros_basics_solved = motion_planning.ros_basics_solved:main',
-            'ros_basics = motion_planning.ros_basics:main'
+            'ros_basics = motion_planning.ros_basics:main',
+            'servicio_coordinador = motion_planning.servicio_coordinador:main'
         ],
     },
 )
